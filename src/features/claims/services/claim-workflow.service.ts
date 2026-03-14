@@ -599,7 +599,7 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
     claimantId: user.id,
     expectedStatuses: ["Approved"],
     updates: {
-      status: "Reviewing",
+      status: "Estimated",
       description: updatedDescription,
     },
   });
@@ -610,9 +610,10 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
 
   return {
     ok: true,
-    message: "Amount revision request submitted. Claim moved back to Reviewing.",
+    message: "Amount revision request submitted. Claim moved to Estimation.",
   } as const;
 }
+
 
 
 

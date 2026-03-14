@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+
 import type { DashboardClaim } from "@/features/claims/services/claims.service";
+import { formatClaimDate } from "@/features/claims/services/claim-display.service";
 
 type WorkspaceStat = {
   label: string;
@@ -22,72 +25,9 @@ type ClaimsWorkspaceProps = {
   guides?: WorkspaceGuide[];
   stats: WorkspaceStat[];
   title: string;
-  renderClaimActions?: (claim: DashboardClaim) => ReactNode;
+  getClaimHref?: (claim: DashboardClaim) => string;
   topContent?: ReactNode;
 };
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Not provided";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(new Date(value));
-}
-
-function formatCurrency(value: number | null) {
-  if (value === null) {
-    return "Awaiting estimate";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    currency: "USD",
-    style: "currency",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatClaimDescription(value: string | null) {
-  if (!value) {
-    return "No incident description has been added yet.";
-  }
-
-  const normalized = value.replace(/\r\n/g, "\n");
-  const lines = normalized
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (lines.length === 0) {
-    return "No incident description has been added yet.";
-  }
-
-  const timestampedEntries: { line: string; timestamp: number }[] = [];
-  const regularEntries: string[] = [];
-
-  lines.forEach((line) => {
-    const match = line.match(/^\[([^\]]+)\]\s/);
-
-    if (!match) {
-      regularEntries.push(line);
-      return;
-    }
-
-    const parsed = Date.parse(match[1]);
-
-    if (Number.isNaN(parsed)) {
-      regularEntries.push(line);
-      return;
-    }
-
-    timestampedEntries.push({ line, timestamp: parsed });
-  });
-
-  timestampedEntries.sort((a, b) => b.timestamp - a.timestamp);
-
-  return [...timestampedEntries.map((entry) => entry.line), ...regularEntries].join("\n");
-}
 
 export function ClaimsWorkspace({
   claims,
@@ -99,7 +39,7 @@ export function ClaimsWorkspace({
   guides,
   stats,
   title,
-  renderClaimActions,
+  getClaimHref,
   topContent,
 }: ClaimsWorkspaceProps) {
   return (
@@ -107,7 +47,7 @@ export function ClaimsWorkspace({
       <section className="workspace-hero">
         <p className="eyebrow">Workspace</p>
         <h3>{title}</h3>
-        <p>{description}</p>
+        <p className="workspace-hero-copy">{description}</p>
       </section>
 
       {error ? <p className="form-alert error">{error}</p> : null}
@@ -146,45 +86,30 @@ export function ClaimsWorkspace({
         </div>
 
         {claims.length ? (
-          <div className="claims-list">
-            {claims.map((claim) => (
-              <article key={claim.id} className="claim-card">
-                <div className="claim-card-header">
-                  <div>
-                    <p className="claim-ref">{claim.refNumber ?? "Reference pending"}</p>
-                    <h5>{claim.vehicleLabel}</h5>
-                  </div>
-                  <span className={`status-pill status-${claim.status.toLowerCase()}`}>{claim.status}</span>
-                </div>
+          <div className="claim-queue-grid">
+            {claims.map((claim) => {
+              const content = (
+                <>
+                  <h5 className="claim-queue-model">{claim.vehicleLabel}</h5>
+                  <p className="claim-queue-number">{claim.refNumber ?? "Reference pending"}</p>
+                  <p className="claim-queue-date">{formatClaimDate(claim.createdAt)}</p>
+                </>
+              );
 
-                <p className="claim-description">{formatClaimDescription(claim.description)}</p>
+              if (!getClaimHref) {
+                return (
+                  <article key={claim.id} className="claim-queue-box">
+                    {content}
+                  </article>
+                );
+              }
 
-                <dl className="claim-meta">
-                  <div>
-                    <dt>Incident date</dt>
-                    <dd>{formatDate(claim.incidentDate)}</dd>
-                  </div>
-                  <div>
-                    <dt>Created</dt>
-                    <dd>{formatDate(claim.createdAt)}</dd>
-                  </div>
-                  <div>
-                    <dt>Estimate</dt>
-                    <dd>{formatCurrency(claim.estimateTotal)}</dd>
-                  </div>
-                  <div>
-                    <dt>Photos</dt>
-                    <dd>{claim.photoCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Fraud score</dt>
-                    <dd>{claim.fraudScore ?? "Pending"}</dd>
-                  </div>
-                </dl>
-
-                {renderClaimActions ? <div className="claim-actions">{renderClaimActions(claim)}</div> : null}
-              </article>
-            ))}
+              return (
+                <Link key={claim.id} href={getClaimHref(claim)} className="claim-queue-box">
+                  {content}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <article className="empty-state">
@@ -196,3 +121,4 @@ export function ClaimsWorkspace({
     </div>
   );
 }
+

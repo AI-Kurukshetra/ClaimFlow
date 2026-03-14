@@ -1,8 +1,18 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+
+import {
+  preloadAdjusterClaimsPayload,
+  useAdjusterClaimsPayload,
+} from "@/features/claims/components/adjuster-claims-data";
+import {
+  preloadClaimantClaimsPayload,
+  useClaimantClaimsPayload,
+} from "@/features/claims/components/claimant-claims-data";
+import { getDetailNavigationHref } from "@/features/claims/services/claim-status-routing";
 
 type NavigationItem = {
   count?: number;
@@ -31,6 +41,55 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const detailNavigationHref = getDetailNavigationHref(pathname);
+  const isClaimantPortal = pathname.startsWith("/dashboard/claimant");
+  const isAdjusterPortal = pathname.startsWith("/dashboard/adjuster");
+
+  const { payload: claimantPayload } = useClaimantClaimsPayload(isClaimantPortal);
+  const { payload: adjusterPayload } = useAdjusterClaimsPayload(isAdjusterPortal);
+
+  const claimantCountsByHref: Record<string, number> | null = claimantPayload
+    ? {
+        "/dashboard/claimant/dashboard": claimantPayload.totals.all,
+        "/dashboard/claimant/action-required": claimantPayload.totals.actionRequired,
+        "/dashboard/claimant/in-progress": claimantPayload.totals.inProgress,
+        "/dashboard/claimant/previous-claims": claimantPayload.totals.closed,
+      }
+    : null;
+
+  const adjusterCountsByHref: Record<string, number> | null = adjusterPayload
+    ? {
+        "/dashboard/adjuster/reviewing": adjusterPayload.totals.reviewing,
+        "/dashboard/adjuster/details-requested": adjusterPayload.totals.detailsRequested,
+        "/dashboard/adjuster/estimated": adjusterPayload.totals.estimated,
+        "/dashboard/adjuster/approved": adjusterPayload.totals.approved,
+        "/dashboard/adjuster/closed": adjusterPayload.totals.closed,
+      }
+    : null;
+
+  useEffect(() => {
+    if (isClaimantPortal) {
+      navigationItems
+        .filter((item) => item.href.startsWith("/dashboard/claimant"))
+        .forEach((item) => {
+          router.prefetch(item.href);
+        });
+
+      preloadClaimantClaimsPayload();
+      return;
+    }
+
+    if (isAdjusterPortal) {
+      navigationItems
+        .filter((item) => item.href.startsWith("/dashboard/adjuster"))
+        .forEach((item) => {
+          router.prefetch(item.href);
+        });
+
+      preloadAdjusterClaimsPayload();
+    }
+  }, [isAdjusterPortal, isClaimantPortal, navigationItems, router]);
 
   return (
     <section className="portal-shell">
@@ -43,7 +102,15 @@ export function DashboardShell({
 
         <nav className="portal-nav" aria-label={`${portalTitle} navigation`}>
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || detailNavigationHref === item.href;
+            const claimantOverrideCount = claimantCountsByHref?.[item.href];
+            const adjusterOverrideCount = adjusterCountsByHref?.[item.href];
+            const count =
+              typeof claimantOverrideCount === "number"
+                ? claimantOverrideCount
+                : typeof adjusterOverrideCount === "number"
+                  ? adjusterOverrideCount
+                  : item.count;
 
             return (
               <Link
@@ -53,9 +120,8 @@ export function DashboardShell({
               >
                 <div className="portal-nav-topline">
                   <span>{item.label}</span>
-                  {typeof item.count === "number" ? <span className="nav-badge">{item.count}</span> : null}
+                  {typeof count === "number" ? <span className="nav-badge">{count}</span> : null}
                 </div>
-                <span className="portal-nav-copy">{item.description}</span>
               </Link>
             );
           })}

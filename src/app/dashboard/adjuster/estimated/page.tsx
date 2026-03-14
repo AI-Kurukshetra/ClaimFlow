@@ -1,4 +1,3 @@
-import { AdjusterClaimActionForm } from "@/features/claims/components/adjuster-claim-action-form";
 import { ClaimsWorkspace } from "@/features/claims/components/claims-workspace";
 import {
   claimStatusCopy,
@@ -6,6 +5,7 @@ import {
   getAdjusterClaims,
   sumEstimateTotals,
 } from "@/features/claims/services/claims.service";
+import { getAdjusterClaimDetailHref } from "@/features/claims/services/claim-status-routing";
 import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
 
 type AdjusterPageProps = {
@@ -29,9 +29,10 @@ export default async function AdjusterEstimatedPage({ searchParams }: AdjusterPa
       emptyTitle="No estimated claims"
       error={getParamValue(params.error)}
       message={getParamValue(params.message)}
+      getClaimHref={(claim) => getAdjusterClaimDetailHref(claim.id, claim.status)}
       guides={[
         {
-          description: "Enter the final estimate amount and save. This automatically moves the claim to Approved.",
+          description: "Open a claim to enter the final estimate amount and send it to client approval.",
           title: "Amount submission",
         },
         {
@@ -39,9 +40,6 @@ export default async function AdjusterEstimatedPage({ searchParams }: AdjusterPa
           title: "Claim communication",
         },
       ]}
-      renderClaimActions={(claim) => (
-        <AdjusterClaimActionForm claimId={claim.id} mode="estimated" redirectTo="/dashboard/adjuster/estimated" />
-      )}
       stats={[
         {
           label: "Estimated claims",
@@ -67,4 +65,3 @@ export default async function AdjusterEstimatedPage({ searchParams }: AdjusterPa
     />
   );
 }
-

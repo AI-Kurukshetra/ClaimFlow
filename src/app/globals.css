@@ -386,7 +386,6 @@ button {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
   min-height: calc(100vh - 48px);
-  border: 1px solid var(--border);
   background: rgba(255, 251, 244, 0.82);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
@@ -524,7 +523,7 @@ button {
   line-height: 1;
 }
 
-.workspace-hero p:last-child,
+.workspace-hero-copy,
 .section-heading p,
 .guide-card p,
 .stat-card p,
@@ -601,10 +600,53 @@ button {
   text-align: right;
 }
 
-.claims-list {
+.claim-queue-grid {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   margin-top: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.claim-queue-box {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+a.claim-queue-box:hover {
+  transform: translateY(-1px);
+  border-color: rgba(13, 107, 95, 0.42);
+  box-shadow: 0 8px 24px rgba(13, 107, 95, 0.14);
+}
+
+.claim-queue-model {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.claim-queue-number,
+.claim-queue-date {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.claim-detail-back-link {
+  display: inline-flex;
+  margin-top: 16px;
+  color: var(--primary);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .claim-card {
@@ -805,6 +847,14 @@ button {
   margin-top: 12px;
 }
 
+.claim-detail-actions {
+  margin-top: 18px;
+}
+
+.claim-detail-actions > * + * {
+  margin-top: 12px;
+}
+
 .claim-form .split-fields .primary-button,
 .claim-form .split-fields .secondary-button {
   width: 100%;
@@ -822,4 +872,220 @@ button {
 
 
 
+
+
+
+
+
+
+/* Sticky dashboard chrome */
+.claimant-shell,
+.portal-shell {
+  overflow: visible;
+}
+
+.claimant-sidebar,
+.portal-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.claimant-header,
+.portal-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 251, 244, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 960px) {
+  .claimant-sidebar,
+  .portal-sidebar {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* Claimant dashboard redesign */
+.dashboard-overview {
+  display: grid;
+  gap: 24px;
+}
+
+.dashboard-overview-hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(230, 182, 85, 0.25), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(242, 248, 245, 0.95));
+}
+
+.dashboard-overview-hero h3 {
+  margin: 8px 0 12px;
+  font-size: clamp(1.8rem, 3.8vw, 2.7rem);
+  line-height: 1;
+}
+
+.dashboard-overview-hero p:last-child {
+  margin: 0;
+  max-width: 620px;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.dashboard-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dashboard-overview-actions .primary-button,
+.dashboard-overview-actions .secondary-button {
+  width: auto;
+  min-width: 170px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-ghost-button {
+  background: rgba(230, 182, 85, 0.28);
+  color: #2a2212;
+}
+
+.dashboard-overview-stats {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.overview-stat-card {
+  padding: 18px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.overview-stat-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-family: Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.overview-stat-card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  line-height: 1;
+}
+
+.overview-stat-card-wide {
+  background: linear-gradient(145deg, rgba(13, 107, 95, 0.1), rgba(255, 255, 255, 0.78));
+}
+
+.claim-queue-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.claim-queue-foot .status-pill {
+  min-width: 0;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+}
+
+@media (max-width: 960px) {
+  .dashboard-overview-hero {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .dashboard-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-overview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-overview-actions .primary-button,
+  .dashboard-overview-actions .secondary-button {
+    width: 100%;
+  }
+}
+
+.claim-detail-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.claim-detail-photo-button {
+  min-width: 0;
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
+.claim-photo-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.claim-photo-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.claim-photo-link {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(30, 31, 27, 0.08);
+  aspect-ratio: 4 / 3;
+}
+
+.claim-photo-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.claim-photo-open-link {
+  color: var(--primary);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.claim-detail-link-row .claim-detail-back-link {
+  margin-top: 0;
+}
 

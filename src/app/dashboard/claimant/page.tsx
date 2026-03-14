@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
 export default function ClaimantDashboardIndexPage() {
-  redirect("/dashboard/claimant/add-claims");
+  redirect("/dashboard/claimant/dashboard");
 }
+

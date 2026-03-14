@@ -3,7 +3,7 @@ import { submitClaimAction } from "@/features/claims/actions";
 
 export function ClaimSubmissionForm() {
   return (
-    <form action={submitClaimAction} className="claim-form" encType="multipart/form-data">
+    <form action={submitClaimAction} className="claim-form">
       <div className="split-fields">
         <label>
           <span>Incident date</span>
@@ -51,3 +51,4 @@ export function ClaimSubmissionForm() {
     </form>
   );
 }
+

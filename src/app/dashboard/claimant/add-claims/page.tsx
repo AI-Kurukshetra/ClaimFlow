@@ -1,6 +1,4 @@
 import { ClaimSubmissionForm } from "@/features/claims/components/claim-submission-form";
-import { ClaimsWorkspace } from "@/features/claims/components/claims-workspace";
-import { getClaimantClaims, sumEstimateTotals } from "@/features/claims/services/claims.service";
 import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
 
 type AddClaimsPageProps = {
@@ -12,70 +10,32 @@ function getParamValue(value: string | string[] | undefined) {
 }
 
 export default async function AddClaimsPage({ searchParams }: AddClaimsPageProps) {
-  const { user } = await requireDashboardRole("claimant");
-  const claims = await getClaimantClaims(user.id);
-  const recentClaims = claims.slice(0, 5);
+  await requireDashboardRole("claimant");
   const params = await searchParams;
 
   return (
-    <ClaimsWorkspace
-      claims={recentClaims}
-      description="Use this area to submit a new claim with incident details, vehicle data, and photo evidence."
-      emptyDescription="Once a claim is created, the most recent files will appear here for quick follow-up."
-      emptyTitle="No recent claims yet"
-      error={getParamValue(params.error)}
-      message={getParamValue(params.message)}
-      guides={[
-        {
-          description: "Capture incident date and a concise timeline before submission.",
-          title: "Incident details",
-        },
-        {
-          description: "Provide accurate vehicle make, model, year, and plate where available.",
-          title: "Vehicle profile",
-        },
-        {
-          description: "Upload clear photos from multiple angles to improve assessment speed.",
-          title: "Photos and evidence",
-        },
-      ]}
-      stats={[
-        {
-          label: "Recent claims",
-          note: "Latest files created under your account.",
-          value: String(recentClaims.length),
-        },
-        {
-          label: "Total claims",
-          note: "All claims currently on your profile.",
-          value: String(claims.length),
-        },
-        {
-          label: "Estimated value",
-          note: "Combined estimates already prepared.",
-          value: new Intl.NumberFormat("en-US", {
-            currency: "USD",
-            style: "currency",
-            maximumFractionDigits: 0,
-          }).format(sumEstimateTotals(claims)),
-        },
-      ]}
-      title="Add Claims"
-      topContent={
-        <>
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">New Submission</p>
-              <h4>Create Claim</h4>
-            </div>
-            <p>Submit a new claim and it will be routed into the reviewing queue immediately.</p>
+    <div className="workspace-stack">
+      <section className="workspace-hero">
+        <p className="eyebrow">New Submission</p>
+        <h3>Add Claim</h3>
+        <p className="workspace-hero-copy">Submit a new claim with incident details, vehicle data, and photo evidence.</p>
+      </section>
+
+      {getParamValue(params.error) ? <p className="form-alert error">{getParamValue(params.error)}</p> : null}
+      {getParamValue(params.message) ? <p className="form-alert success">{getParamValue(params.message)}</p> : null}
+
+      <section className="claims-section">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Claim Form</p>
+            <h4>Create Claim</h4>
           </div>
-          <div className="claim-form-wrap">
-            <ClaimSubmissionForm />
-          </div>
-        </>
-      }
-    />
+          <p>After submission, the claim will be routed to the adjuster reviewing queue.</p>
+        </div>
+        <div className="claim-form-wrap">
+          <ClaimSubmissionForm />
+        </div>
+      </section>
+    </div>
   );
 }
-

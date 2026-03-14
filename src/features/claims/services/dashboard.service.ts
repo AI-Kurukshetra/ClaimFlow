@@ -39,7 +39,7 @@ export function getDashboardHomeHref(role: ProfileRole | null | undefined) {
     case "adjuster":
       return "/dashboard/adjuster/reviewing";
     case "claimant":
-      return "/dashboard/claimant/add-claims";
+      return "/dashboard/claimant/dashboard";
     case "admin":
     default:
       return "/dashboard";
@@ -55,4 +55,5 @@ export async function requireDashboardRole(expectedRole: ProfileRole) {
 
   return context;
 }
+
 

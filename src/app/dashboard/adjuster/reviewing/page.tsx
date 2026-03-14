@@ -1,10 +1,10 @@
-import { AdjusterClaimActionForm } from "@/features/claims/components/adjuster-claim-action-form";
 import { ClaimsWorkspace } from "@/features/claims/components/claims-workspace";
 import {
   claimStatusCopy,
   filterClaimsByStatus,
   getAdjusterClaims,
 } from "@/features/claims/services/claims.service";
+import { getAdjusterClaimDetailHref } from "@/features/claims/services/claim-status-routing";
 import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
 
 type AdjusterPageProps = {
@@ -28,9 +28,10 @@ export default async function AdjusterReviewingPage({ searchParams }: AdjusterPa
       emptyTitle="No claims under review"
       error={getParamValue(params.error)}
       message={getParamValue(params.message)}
+      getClaimHref={(claim) => getAdjusterClaimDetailHref(claim.id, claim.status)}
       guides={[
         {
-          description: "Either move the claim to Estimation or request additional details from the claimant.",
+          description: "Open a claim and either move it to Estimation or request additional claimant details.",
           title: "Review decisions",
         },
         {
@@ -38,9 +39,6 @@ export default async function AdjusterReviewingPage({ searchParams }: AdjusterPa
           title: "Validation gate",
         },
       ]}
-      renderClaimActions={(claim) => (
-        <AdjusterClaimActionForm claimId={claim.id} mode="reviewing" redirectTo="/dashboard/adjuster/reviewing" />
-      )}
       stats={[
         {
           label: "In review",
@@ -62,4 +60,3 @@ export default async function AdjusterReviewingPage({ searchParams }: AdjusterPa
     />
   );
 }
-

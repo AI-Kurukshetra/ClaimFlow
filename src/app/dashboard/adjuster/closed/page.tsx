@@ -5,6 +5,7 @@ import {
   getAdjusterClaims,
   sumEstimateTotals,
 } from "@/features/claims/services/claims.service";
+import { getAdjusterClaimDetailHref } from "@/features/claims/services/claim-status-routing";
 import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
 
 type AdjusterPageProps = {
@@ -28,6 +29,7 @@ export default async function AdjusterClosedPage({ searchParams }: AdjusterPageP
       emptyTitle="No closed claims"
       error={getParamValue(params.error)}
       message={getParamValue(params.message)}
+      getClaimHref={(claim) => getAdjusterClaimDetailHref(claim.id, claim.status)}
       stats={[
         {
           label: "Closed files",

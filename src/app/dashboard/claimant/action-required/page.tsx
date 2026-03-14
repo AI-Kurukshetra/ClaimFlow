@@ -1,52 +1,33 @@
-import { ClaimantAmountRequestForm } from "@/features/claims/components/claimant-amount-request-form";
-import { ClaimantClaimConfirmationForm } from "@/features/claims/components/claimant-claim-confirmation-form";
-import { ClaimantDetailsResponseForm } from "@/features/claims/components/claimant-details-response-form";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
+import { useClaimantClaimsPayload } from "@/features/claims/components/claimant-claims-data";
 import { ClaimsWorkspace } from "@/features/claims/components/claims-workspace";
-import {
-  filterActionRequiredClaimantClaims,
-  getClaimantClaims,
-  sumEstimateTotals,
-} from "@/features/claims/services/claims.service";
-import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
+import { formatClaimCurrency } from "@/features/claims/services/claim-display.service";
+import { getClaimantClaimDetailHref } from "@/features/claims/services/claim-status-routing";
 
-type ActionRequiredPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-function getParamValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-export default async function ActionRequiredPage({ searchParams }: ActionRequiredPageProps) {
-  const { user } = await requireDashboardRole("claimant");
-  const claims = filterActionRequiredClaimantClaims(await getClaimantClaims(user.id));
-  const params = await searchParams;
+export default function ActionRequiredPage() {
+  const searchParams = useSearchParams();
+  const { payload, error, isLoading } = useClaimantClaimsPayload();
+  const claims = payload?.actionRequiredClaims ?? [];
+  const estimateTotal = claims.reduce((total, claim) => total + (claim.estimateTotal ?? 0), 0);
+  const queryError = searchParams.get("error");
+  const queryMessage = searchParams.get("message");
 
   return (
     <ClaimsWorkspace
       claims={claims}
-      description="Handle claims waiting for your response: provide requested details or approve/request revision on estimates."
+      description={
+        isLoading && !payload
+          ? "Loading claims waiting for your response..."
+          : "Handle claims waiting for your response: provide requested details or approve/request revision on estimates."
+      }
       emptyDescription="No claims currently need your action."
       emptyTitle="No actions required"
-      error={getParamValue(params.error)}
-      message={getParamValue(params.message)}
-      renderClaimActions={(claim) => {
-        if (claim.status === "DetailsRequested") {
-          return <ClaimantDetailsResponseForm claimId={claim.id} redirectTo="/dashboard/claimant/action-required" />;
-        }
-
-        if (claim.status === "Approved") {
-          return (
-            <>
-              <p className="claim-action-note">Approve this estimate to close, or request a higher amount with justification.</p>
-              <ClaimantClaimConfirmationForm claimId={claim.id} redirectTo="/dashboard/claimant/action-required" />
-              <ClaimantAmountRequestForm claimId={claim.id} redirectTo="/dashboard/claimant/action-required" />
-            </>
-          );
-        }
-
-        return null;
-      }}
+      error={queryError ?? error ?? undefined}
+      message={queryMessage ?? undefined}
+      getClaimHref={(claim) => getClaimantClaimDetailHref(claim.id, claim.status)}
       stats={[
         {
           label: "Action required",
@@ -61,11 +42,7 @@ export default async function ActionRequiredPage({ searchParams }: ActionRequire
         {
           label: "Estimate value",
           note: "Total estimated value in this action queue.",
-          value: new Intl.NumberFormat("en-US", {
-            currency: "USD",
-            style: "currency",
-            maximumFractionDigits: 0,
-          }).format(sumEstimateTotals(claims)),
+          value: formatClaimCurrency(estimateTotal, "$0"),
         },
       ]}
       title="Action Required"
