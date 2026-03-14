@@ -15,6 +15,8 @@ type ClaimDetailsViewProps = {
   claim: DashboardClaim;
   description: string;
   error?: string;
+  insightContent?: ReactNode;
+  inspectionContent?: ReactNode;
   message?: string;
   photosHref?: string;
   title: string;
@@ -27,6 +29,8 @@ export function ClaimDetailsView({
   claim,
   description,
   error,
+  insightContent,
+  inspectionContent,
   message,
   photosHref,
   title,
@@ -99,6 +103,32 @@ export function ClaimDetailsView({
         </article>
       </section>
 
+      {insightContent ? (
+        <section className="claims-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Estimate</p>
+              <h4>Damage Assessment</h4>
+            </div>
+            <p>Structured estimate data generated from claim handling and uploaded photo evidence.</p>
+          </div>
+          {insightContent}
+        </section>
+      ) : null}
+
+      {inspectionContent ? (
+        <section className="claims-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Calendar</p>
+              <h4>Virtual Inspections</h4>
+            </div>
+            <p>Schedule or review remote inspections with adjusters and third-party appraisers.</p>
+          </div>
+          {inspectionContent}
+        </section>
+      ) : null}
+
       {actionContent ? (
         <section className="claims-section">
           <div className="section-heading">
@@ -114,4 +144,3 @@ export function ClaimDetailsView({
     </div>
   );
 }
-

@@ -29,6 +29,30 @@ export type PhotoRecord = {
   analyzed_at: string | null;
 };
 
+export type ClaimInspectionRecord = {
+  id: string;
+  claim_id: string;
+  scheduled_for: string;
+  provider_type: string;
+  requested_by: string;
+  requested_by_role: string;
+  reason: string;
+  status: string;
+  notes: string | null;
+  requester_timezone: string | null;
+  created_at: string | null;
+};
+
+export function isMissingClaimInspectionsTableError(message: string | undefined) {
+  if (!message) {
+    return false;
+  }
+
+  const lower = message.toLowerCase();
+
+  return lower.includes("claim_inspections") && (lower.includes("schema cache") || lower.includes("could not find the table") || lower.includes("does not exist"));
+}
+
 export async function listClaimsForClaimant(claimantId: string) {
   const supabase = await createSupabaseServerClient();
 
@@ -198,6 +222,18 @@ export async function upsertEstimate(input: {
   return { data, error };
 }
 
+export async function getEstimateByClaimId(claimId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("estimates")
+    .select("id, claim_id, line_items, total_amount, adjuster_notes, created_at")
+    .eq("claim_id", claimId)
+    .maybeSingle<EstimateRecord>();
+
+  return { data, error };
+}
+
 export async function createPhotoRecords(input: {
   claimId: string;
   storagePaths: string[];
@@ -219,6 +255,56 @@ export async function createPhotoRecords(input: {
     .select("id, claim_id, storage_path, analyzed_at");
 
   return { data: (data ?? []) as PhotoRecord[], error };
+}
+
+export async function createClaimInspection(input: {
+  claimId: string;
+  notes: string | null;
+  providerType: string;
+  reason: string;
+  requestedBy: string;
+  requestedByRole: string;
+  requesterTimezone: string;
+  scheduledFor: string;
+}) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("claim_inspections")
+    .insert({
+      claim_id: input.claimId,
+      notes: input.notes,
+      provider_type: input.providerType,
+      reason: input.reason,
+      requested_by: input.requestedBy,
+      requested_by_role: input.requestedByRole,
+      requester_timezone: input.requesterTimezone,
+      scheduled_for: input.scheduledFor,
+    })
+    .select(
+      "id, claim_id, scheduled_for, provider_type, requested_by, requested_by_role, reason, status, notes, requester_timezone, created_at",
+    )
+    .single<ClaimInspectionRecord>();
+
+  return { data, error };
+}
+
+export async function getClaimInspectionsByClaimId(claimId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("claim_inspections")
+    .select(
+      "id, claim_id, scheduled_for, provider_type, requested_by, requested_by_role, reason, status, notes, requester_timezone, created_at",
+    )
+    .eq("claim_id", claimId)
+    .order("scheduled_for", { ascending: true });
+
+  if (isMissingClaimInspectionsTableError(error?.message)) {
+    return { data: [] as ClaimInspectionRecord[], error: null };
+  }
+
+  return { data: (data ?? []) as ClaimInspectionRecord[], error };
 }
 
 export async function listEstimatesForClaimIds(claimIds: string[]) {
@@ -266,4 +352,3 @@ export async function listAdjusters() {
     error,
   };
 }
-

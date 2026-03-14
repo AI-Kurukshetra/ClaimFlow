@@ -1,4 +1,4 @@
-import { submitAdditionalDetailsByClaimantAction } from "@/features/claims/actions";
+import { ClaimInspectionScheduleForm } from "@/features/claims/components/claim-inspection-schedule-form";
 
 type ClaimantDetailsResponseFormProps = {
   claimId: string;
@@ -7,24 +7,13 @@ type ClaimantDetailsResponseFormProps = {
 
 export function ClaimantDetailsResponseForm({ claimId, redirectTo }: ClaimantDetailsResponseFormProps) {
   return (
-    <form action={submitAdditionalDetailsByClaimantAction} className="claim-form claim-form-compact">
-      <input type="hidden" name="claimId" value={claimId} />
-      <input type="hidden" name="redirectTo" value={redirectTo} />
-
-      <label>
-        <span>Additional details</span>
-        <textarea
-          name="additionalDetails"
-          rows={3}
-          maxLength={2000}
-          placeholder="Provide the requested details so adjuster can continue review."
-          required
-        />
-      </label>
-
-      <button className="primary-button" type="submit">
-        Submit Details
-      </button>
-    </form>
+    <ClaimInspectionScheduleForm
+      claimId={claimId}
+      description="A visual inspection is required before this claim can return to review. Choose a time with the adjuster or a third-party appraiser."
+      reason="additional_details"
+      redirectTo={redirectTo}
+      submitLabel="Schedule Visual Inspection"
+      title="Book the required inspection"
+    />
   );
 }

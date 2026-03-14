@@ -55,6 +55,19 @@ export function getSupabaseAdminEnv() {
   };
 }
 
+export function getOptionalOpenAiEnv() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (!apiKey) {
+    return null;
+  }
+
+  return {
+    apiKey,
+    damageModel: process.env.OPENAI_DAMAGE_MODEL?.trim() || "gpt-4.1-mini",
+  };
+}
+
 export function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }

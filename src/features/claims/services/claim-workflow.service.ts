@@ -2,13 +2,25 @@ import { randomUUID } from "crypto";
 
 import {
   createClaim,
+  createClaimInspection,
   createPhotoRecords,
   getClaimById,
+  getEstimateByClaimId,
+  isMissingClaimInspectionsTableError,
   updateClaimForClaimant,
   upsertEstimate,
   updateClaimForAdjuster,
 } from "@/features/claims/repositories/claims.repository";
 import { claimStatuses, type ClaimStatus } from "@/features/claims/services/claims.service";
+import {
+  formatInspectionProviderLabel,
+  hasHigherAmountRevisionRequest,
+  isClaimInspectionReason,
+  isInspectionProviderType,
+  type ClaimInspectionReason,
+  type InspectionProviderType,
+} from "@/features/claims/services/claim-inspection.service";
+import { generateDamageAssessmentForClaim } from "@/features/claims/services/damage-assessment.service";
 import { requireDashboardRole } from "@/features/claims/services/dashboard.service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -44,9 +56,22 @@ export type ClaimantDetailsPayload = {
 
 export type ClaimantAmountRequestPayload = {
   claimId: string;
-  justification: string;
+  providerType: InspectionProviderType;
   redirectTo: string;
   requestedAmountRaw: string;
+  scheduledForLocal: string;
+  timezoneName: string;
+  timezoneOffsetMinutesRaw: string;
+};
+
+export type ClaimInspectionSchedulePayload = {
+  claimId: string;
+  providerType: InspectionProviderType;
+  reason: ClaimInspectionReason;
+  redirectTo: string;
+  scheduledForLocal: string;
+  timezoneName: string;
+  timezoneOffsetMinutesRaw: string;
 };
 
 const claimPhotosBucket = "claim-photos";
@@ -63,6 +88,22 @@ function sanitizeClaimStatus(value: FormDataEntryValue | null): ClaimStatus {
   return claimStatuses.includes(value as ClaimStatus) ? (value as ClaimStatus) : "Reviewing";
 }
 
+function sanitizeInspectionProviderType(value: FormDataEntryValue | null): InspectionProviderType {
+  if (typeof value !== "string" || !isInspectionProviderType(value.trim())) {
+    return "adjuster";
+  }
+
+  return value.trim() as InspectionProviderType;
+}
+
+function sanitizeInspectionReason(value: FormDataEntryValue | null): ClaimInspectionReason {
+  if (typeof value !== "string" || !isClaimInspectionReason(value.trim())) {
+    return "additional_details";
+  }
+
+  return value.trim() as ClaimInspectionReason;
+}
+
 function parseCurrency(value: string) {
   if (!value.trim()) {
     return null;
@@ -75,6 +116,76 @@ function parseCurrency(value: string) {
   }
 
   return parsed;
+}
+
+function parseScheduledForLocal(value: string, timezoneOffsetMinutesRaw: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const offsetMinutes = Number(timezoneOffsetMinutesRaw);
+
+  if (!Number.isInteger(offsetMinutes) || offsetMinutes < -840 || offsetMinutes > 840) {
+    return null;
+  }
+
+  const [, year, month, day, hour, minute] = match;
+  const utcTimestamp =
+    Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute)) + offsetMinutes * 60 * 1000;
+  const parsedDate = new Date(utcTimestamp);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate.toISOString();
+}
+
+function formatInspectionConfirmationDate(value: string, timeZone: string) {
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    dateStyle: "medium",
+    timeStyle: "short",
+  };
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      ...formatOptions,
+      timeZone,
+    }).format(new Date(value));
+  } catch {
+    return new Intl.DateTimeFormat("en-US", {
+      ...formatOptions,
+      timeZone: "UTC",
+    }).format(new Date(value));
+  }
+}
+
+function isClaimInspectionUnavailableError(message: string | undefined) {
+  if (!message) {
+    return false;
+  }
+
+  const lower = message.toLowerCase();
+
+  return (
+    lower.includes("claim_inspections") &&
+    (
+      lower.includes("schema cache") ||
+      lower.includes("could not find the table") ||
+      lower.includes("does not exist") ||
+      lower.includes("row-level security") ||
+      lower.includes("permission denied")
+    )
+  );
+}
+
+function buildInspectionScheduleNote(providerType: InspectionProviderType, scheduledFor: string, timezoneName: string) {
+  const providerLabel = formatInspectionProviderLabel(providerType);
+  const formattedDate = formatInspectionConfirmationDate(scheduledFor, timezoneName || "UTC");
+
+  return `${providerLabel} virtual inspection scheduled for ${formattedDate}.`;
 }
 
 function normalizeFileName(name: string) {
@@ -202,6 +313,50 @@ async function cleanupUploadedPhotos(
   }
 
   await adminClient.storage.from(claimPhotosBucket).remove(uploadedPaths);
+}
+
+function mergeEstimateNotes(primaryNote: string, supplementalNote: string) {
+  const notes = [primaryNote.trim(), supplementalNote.trim()].filter((note) => note.length > 0);
+  return notes.length > 0 ? notes.join("\n") : null;
+}
+
+async function prepareAutomaticEstimateForClaim(input: {
+  claimId: string;
+  description: string | null;
+  initialNote: string;
+  refNumber: string | null;
+  vehicleInfo: Record<string, unknown> | null;
+}) {
+  const assessment = await generateDamageAssessmentForClaim({
+    claimId: input.claimId,
+    description: input.description,
+    refNumber: input.refNumber,
+    vehicleInfo: input.vehicleInfo,
+  });
+
+  if (!assessment) {
+    if (!input.initialNote.trim()) {
+      return false;
+    }
+
+    const fallbackEstimate = await upsertEstimate({
+      claimId: input.claimId,
+      totalAmount: null,
+      adjusterNotes: input.initialNote.trim(),
+      lineItems: [],
+    });
+
+    return !fallbackEstimate.error;
+  }
+
+  const estimateResult = await upsertEstimate({
+    claimId: input.claimId,
+    totalAmount: assessment.totalAmount,
+    adjusterNotes: mergeEstimateNotes(assessment.adjusterNotes, input.initialNote),
+    lineItems: assessment.lineItems,
+  });
+
+  return !estimateResult.error;
 }
 
 export async function submitClaimByClaimant(payload: ClaimSubmissionPayload) {
@@ -352,6 +507,23 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
       return { ok: false, error: "Estimate amount is required before sending to claimant approval." } as const;
     }
 
+    const existingEstimateResult = await getEstimateByClaimId(payload.claimId);
+
+    if (existingEstimateResult.error) {
+      return { ok: false, error: existingEstimateResult.error.message } as const;
+    }
+
+    const estimateWriteResult = await upsertEstimate({
+      claimId: payload.claimId,
+      totalAmount: parsedAmount,
+      adjusterNotes: payload.adjusterNotes || existingEstimateResult.data?.adjuster_notes || null,
+      lineItems: existingEstimateResult.data?.line_items ?? [],
+    });
+
+    if (estimateWriteResult.error) {
+      return { ok: false, error: estimateWriteResult.error.message } as const;
+    }
+
     targetStatus = "Approved";
   } else {
     if (payload.status !== "Estimated" && payload.status !== "DetailsRequested") {
@@ -401,22 +573,6 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
     return { ok: false, error: updateErrorMessage ?? "Unable to update claim status." } as const;
   }
 
-  const shouldWriteEstimate =
-    parsedAmount !== null || (payload.adjusterNotes.length > 0 && targetStatus !== "DetailsRequested") || currentStatus === "Estimated";
-
-  if (shouldWriteEstimate) {
-    const estimateResult = await upsertEstimate({
-      claimId: payload.claimId,
-      totalAmount: parsedAmount,
-      adjusterNotes: payload.adjusterNotes || null,
-      lineItems: [],
-    });
-
-    if (estimateResult.error) {
-      return { ok: false, error: estimateResult.error.message } as const;
-    }
-  }
-
   if (currentStatus === "Estimated") {
     return {
       ok: true,
@@ -431,9 +587,19 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
     } as const;
   }
 
+  const automaticEstimatePrepared = await prepareAutomaticEstimateForClaim({
+    claimId: payload.claimId,
+    description: claim.description,
+    initialNote: payload.adjusterNotes,
+    refNumber: claim.ref_number,
+    vehicleInfo: claim.vehicle_info,
+  });
+
   return {
     ok: true,
-    message: "Claim moved to Estimation.",
+    message: automaticEstimatePrepared
+      ? "Claim moved to Estimation. Photo-based damage assessment prepared."
+      : "Claim moved to Estimation. Enter or revise the estimate manually.",
   } as const;
 }
 
@@ -455,10 +621,126 @@ export function getClaimantDetailsPayload(formData: FormData): ClaimantDetailsPa
 export function getClaimantAmountRequestPayload(formData: FormData): ClaimantAmountRequestPayload {
   return {
     claimId: sanitizeText(formData.get("claimId")),
+    providerType: sanitizeInspectionProviderType(formData.get("providerType")),
     requestedAmountRaw: sanitizeText(formData.get("requestedAmount")),
-    justification: sanitizeText(formData.get("justification")),
     redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/action-required",
+    scheduledForLocal: sanitizeText(formData.get("scheduledForLocal")),
+    timezoneName: sanitizeText(formData.get("timezoneName")) || "UTC",
+    timezoneOffsetMinutesRaw: sanitizeText(formData.get("timezoneOffsetMinutes")),
   };
+}
+
+export function getClaimInspectionSchedulePayload(formData: FormData): ClaimInspectionSchedulePayload {
+  return {
+    claimId: sanitizeText(formData.get("claimId")),
+    providerType: sanitizeInspectionProviderType(formData.get("providerType")),
+    reason: sanitizeInspectionReason(formData.get("reason")),
+    redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/action-required",
+    scheduledForLocal: sanitizeText(formData.get("scheduledForLocal")),
+    timezoneName: sanitizeText(formData.get("timezoneName")) || "UTC",
+    timezoneOffsetMinutesRaw: sanitizeText(formData.get("timezoneOffsetMinutes")),
+  };
+}
+
+export async function scheduleClaimInspectionByClaimant(payload: ClaimInspectionSchedulePayload) {
+  const { user } = await requireDashboardRole("claimant");
+
+  if (!payload.claimId) {
+    return { ok: false, error: "Claim id is required." } as const;
+  }
+
+  if (!payload.scheduledForLocal) {
+    return { ok: false, error: "Select a date and time for the virtual inspection." } as const;
+  }
+
+  const scheduledFor = parseScheduledForLocal(payload.scheduledForLocal, payload.timezoneOffsetMinutesRaw);
+
+  if (!scheduledFor) {
+    return { ok: false, error: "Inspection date and time could not be read. Try selecting it again." } as const;
+  }
+
+  if (new Date(scheduledFor).getTime() <= Date.now()) {
+    return { ok: false, error: "Inspection time must be in the future." } as const;
+  }
+
+  const claimResult = await getClaimById(payload.claimId);
+
+  if (claimResult.error || !claimResult.data) {
+    return { ok: false, error: claimResult.error?.message ?? "Claim not found." } as const;
+  }
+
+  const claim = claimResult.data;
+
+  if (claim.claimant_id !== user.id) {
+    return { ok: false, error: "You can only schedule inspections for your own claims." } as const;
+  }
+
+  const status = normalizeWorkflowStatus(claim.status);
+
+  if (payload.reason === "additional_details") {
+    if (status !== "DetailsRequested") {
+      return { ok: false, error: "Virtual inspections for additional details are only available while details are requested." } as const;
+    }
+  }
+
+  if (payload.reason === "higher_amount_review") {
+    if (status !== "Estimated" || !hasHigherAmountRevisionRequest(claim.description)) {
+      return { ok: false, error: "Higher amount inspection scheduling is only available after a revision request returns to estimation." } as const;
+    }
+  }
+
+  const createResult = await createClaimInspection({
+    claimId: payload.claimId,
+    notes: null,
+    providerType: payload.providerType,
+    reason: payload.reason,
+    requestedBy: user.id,
+    requestedByRole: "claimant",
+    requesterTimezone: payload.timezoneName || "UTC",
+    scheduledFor,
+  });
+
+  if (createResult.error) {
+    if (isClaimInspectionUnavailableError(createResult.error.message)) {
+      return {
+        ok: false,
+        error: "Virtual inspections are not available until the latest Supabase migrations are applied. Run the new claim_inspections migrations and retry.",
+      } as const;
+    }
+
+    return { ok: false, error: createResult.error.message } as const;
+  }
+
+  const inspectionNote = buildInspectionScheduleNote(payload.providerType, scheduledFor, payload.timezoneName || "UTC");
+
+  if (payload.reason === "additional_details") {
+    const updateResult = await updateClaimForClaimant({
+      claimId: payload.claimId,
+      claimantId: user.id,
+      expectedStatuses: ["DetailsRequested"],
+      updates: {
+        status: "Reviewing",
+        description: appendWorkflowNote(claim.description, "Claimant virtual inspection scheduled", inspectionNote),
+      },
+    });
+
+    if (updateResult.error || !updateResult.data) {
+      return {
+        ok: false,
+        error: updateResult.error?.message ?? "Virtual inspection was scheduled, but claim could not be returned to Reviewing.",
+      } as const;
+    }
+
+    return {
+      ok: true,
+      message: `${inspectionNote} Claim returned to Reviewing.`,
+    } as const;
+  }
+
+  return {
+    ok: true,
+    message: inspectionNote,
+  } as const;
 }
 
 export async function confirmClaimByClaimant(payload: ClaimantConfirmationPayload) {
@@ -505,54 +787,10 @@ export async function confirmClaimByClaimant(payload: ClaimantConfirmationPayloa
   } as const;
 }
 
-export async function submitAdditionalDetailsByClaimant(payload: ClaimantDetailsPayload) {
-  const { user } = await requireDashboardRole("claimant");
-
-  if (!payload.claimId) {
-    return { ok: false, error: "Claim id is required." } as const;
-  }
-
-  if (!payload.additionalDetails) {
-    return { ok: false, error: "Additional details are required." } as const;
-  }
-
-  const claimResult = await getClaimById(payload.claimId);
-
-  if (claimResult.error || !claimResult.data) {
-    return { ok: false, error: claimResult.error?.message ?? "Claim not found." } as const;
-  }
-
-  const claim = claimResult.data;
-
-  if (claim.claimant_id !== user.id) {
-    return { ok: false, error: "You can only update your own claims." } as const;
-  }
-
-  const status = normalizeWorkflowStatus(claim.status);
-
-  if (status !== "DetailsRequested") {
-    return { ok: false, error: "This claim is not currently waiting for additional details." } as const;
-  }
-
-  const updatedDescription = appendWorkflowNote(claim.description, "Claimant additional details", payload.additionalDetails);
-
-  const updateResult = await updateClaimForClaimant({
-    claimId: payload.claimId,
-    claimantId: user.id,
-    expectedStatuses: ["DetailsRequested"],
-    updates: {
-      status: "Reviewing",
-      description: updatedDescription,
-    },
-  });
-
-  if (updateResult.error || !updateResult.data) {
-    return { ok: false, error: updateResult.error?.message ?? "Unable to submit additional details." } as const;
-  }
-
+export async function submitAdditionalDetailsByClaimant(_payload: ClaimantDetailsPayload): Promise<{ ok: false; error: string } | { ok: true; message: string }> {
   return {
-    ok: true,
-    message: "Additional details submitted. Claim returned to Reviewing.",
+    ok: false,
+    error: "A virtual inspection is required before this claim can return to Reviewing. Schedule the inspection instead of submitting comments.",
   } as const;
 }
 
@@ -569,8 +807,18 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
     return { ok: false, error: "Requested amount must be a valid positive number." } as const;
   }
 
-  if (!payload.justification) {
-    return { ok: false, error: "Justification is required when requesting a higher amount." } as const;
+  if (!payload.scheduledForLocal) {
+    return { ok: false, error: "Schedule a visual inspection before requesting a higher amount." } as const;
+  }
+
+  const scheduledFor = parseScheduledForLocal(payload.scheduledForLocal, payload.timezoneOffsetMinutesRaw);
+
+  if (!scheduledFor) {
+    return { ok: false, error: "Inspection date and time could not be read. Try selecting it again." } as const;
+  }
+
+  if (new Date(scheduledFor).getTime() <= Date.now()) {
+    return { ok: false, error: "Inspection time must be in the future." } as const;
   }
 
   const claimResult = await getClaimById(payload.claimId);
@@ -591,7 +839,30 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
     return { ok: false, error: "Higher amount requests are only allowed during claimant approval." } as const;
   }
 
-  const note = `Requested amount: $${requestedAmount.toFixed(2)}. Justification: ${payload.justification}`;
+  const createResult = await createClaimInspection({
+    claimId: payload.claimId,
+    notes: null,
+    providerType: payload.providerType,
+    reason: "higher_amount_review",
+    requestedBy: user.id,
+    requestedByRole: "claimant",
+    requesterTimezone: payload.timezoneName || "UTC",
+    scheduledFor,
+  });
+
+  if (createResult.error) {
+    if (isClaimInspectionUnavailableError(createResult.error.message)) {
+      return {
+        ok: false,
+        error: "Visual inspections for higher amount requests are not available until the latest Supabase migrations are applied. Run the new claim_inspections migrations and retry.",
+      } as const;
+    }
+
+    return { ok: false, error: createResult.error.message } as const;
+  }
+
+  const inspectionNote = buildInspectionScheduleNote(payload.providerType, scheduledFor, payload.timezoneName || "UTC");
+  const note = `Requested amount: ${requestedAmount.toFixed(2)}. ${inspectionNote}`;
   const updatedDescription = appendWorkflowNote(claim.description, "Claimant amount revision request", note);
 
   const updateResult = await updateClaimForClaimant({
@@ -605,17 +876,14 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
   });
 
   if (updateResult.error || !updateResult.data) {
-    return { ok: false, error: updateResult.error?.message ?? "Unable to submit amount revision request." } as const;
+    return {
+      ok: false,
+      error: updateResult.error?.message ?? "Visual inspection was scheduled, but the amount revision request could not be completed.",
+    } as const;
   }
 
   return {
     ok: true,
-    message: "Amount revision request submitted. Claim moved to Estimation.",
+    message: "Amount revision request submitted and visual inspection scheduled. Claim moved to Estimation.",
   } as const;
 }
-
-
-
-
-
-

@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import {
   confirmClaimByClaimant,
   getAdjusterUpdatePayload,
+  getClaimInspectionSchedulePayload,
   getClaimantAmountRequestPayload,
   getClaimantConfirmationPayload,
   getClaimantDetailsPayload,
   requestHigherAmountByClaimant,
+  scheduleClaimInspectionByClaimant,
   submitAdditionalDetailsByClaimant,
   submitClaimByClaimant,
   updateClaimByAdjuster,
@@ -83,6 +85,18 @@ export async function requestHigherAmountByClaimantAction(formData: FormData) {
   const payload = getClaimantAmountRequestPayload(formData);
   const redirectTarget = payload.redirectTo || "/dashboard/claimant/action-required";
   const result = await requestHigherAmountByClaimant(payload);
+
+  if (!result.ok) {
+    redirect(buildRedirectPath(redirectTarget, "error", result.error));
+  }
+
+  redirect(buildRedirectPath(redirectTarget, "message", result.message));
+}
+
+export async function scheduleClaimInspectionByClaimantAction(formData: FormData) {
+  const payload = getClaimInspectionSchedulePayload(formData);
+  const redirectTarget = payload.redirectTo || "/dashboard/claimant/action-required";
+  const result = await scheduleClaimInspectionByClaimant(payload);
 
   if (!result.ok) {
     redirect(buildRedirectPath(redirectTarget, "error", result.error));

@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-import { requestHigherAmountByClaimantAction } from "@/features/claims/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { scheduleClaimInspectionByClaimantAction } from "@/features/claims/actions";
+import type { ClaimInspectionReason } from "@/features/claims/services/claim-inspection.service";
 
-type ClaimantAmountRequestFormProps = {
+type ClaimInspectionScheduleFormProps = {
   claimId: string;
+  description: string;
+  reason: ClaimInspectionReason;
   redirectTo: string;
+  submitLabel: string;
+  title: string;
 };
 
 function getMinDateTimeValue() {
@@ -16,7 +21,14 @@ function getMinDateTimeValue() {
   return adjusted.toISOString().slice(0, 16);
 }
 
-export function ClaimantAmountRequestForm({ claimId, redirectTo }: ClaimantAmountRequestFormProps) {
+export function ClaimInspectionScheduleForm({
+  claimId,
+  description,
+  reason,
+  redirectTo,
+  submitLabel,
+  title,
+}: ClaimInspectionScheduleFormProps) {
   const [timezoneName, setTimezoneName] = useState("UTC");
   const [timezoneOffsetMinutes, setTimezoneOffsetMinutes] = useState("0");
   const [minDateTimeValue, setMinDateTimeValue] = useState("");
@@ -28,18 +40,22 @@ export function ClaimantAmountRequestForm({ claimId, redirectTo }: ClaimantAmoun
   }, []);
 
   return (
-    <form action={requestHigherAmountByClaimantAction} className="claim-form claim-form-compact">
+    <form action={scheduleClaimInspectionByClaimantAction} className="claim-form claim-form-compact">
       <input type="hidden" name="claimId" value={claimId} />
+      <input type="hidden" name="reason" value={reason} />
       <input type="hidden" name="redirectTo" value={redirectTo} />
       <input type="hidden" name="timezoneName" value={timezoneName} />
       <input type="hidden" name="timezoneOffsetMinutes" value={timezoneOffsetMinutes} />
 
-      <p className="claim-action-note">A visual inspection is required to request a higher amount.</p>
+      <div className="inspection-form-copy">
+        <h5>{title}</h5>
+        <p>{description}</p>
+      </div>
 
       <div className="split-fields">
         <label>
-          <span>Requested amount (USD)</span>
-          <input name="requestedAmount" type="number" step="0.01" min={0} placeholder="1500" required />
+          <span>Date and time</span>
+          <input name="scheduledForLocal" type="datetime-local" min={minDateTimeValue || undefined} required />
         </label>
 
         <label>
@@ -51,14 +67,9 @@ export function ClaimantAmountRequestForm({ claimId, redirectTo }: ClaimantAmoun
         </label>
       </div>
 
-      <label>
-        <span>Inspection date and time</span>
-        <input name="scheduledForLocal" type="datetime-local" min={minDateTimeValue || undefined} required />
-      </label>
-
       <p className="claim-field-note">Times are saved using your local timezone: {timezoneName}.</p>
 
-      <SubmitButton idleLabel="Request Higher Amount" pendingLabel="Submitting..." />
+      <SubmitButton idleLabel={submitLabel} pendingLabel="Scheduling..." />
     </form>
   );
 }

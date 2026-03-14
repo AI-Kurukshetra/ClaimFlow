@@ -4,6 +4,9 @@ import { ClaimantAmountRequestForm } from "@/features/claims/components/claimant
 import { ClaimantClaimConfirmationForm } from "@/features/claims/components/claimant-claim-confirmation-form";
 import { ClaimantDetailsResponseForm } from "@/features/claims/components/claimant-details-response-form";
 import { ClaimDetailsView } from "@/features/claims/components/claim-details-view";
+import { ClaimInspectionPanel } from "@/features/claims/components/claim-inspection-panel";
+import { getClaimInspectionsByClaimId } from "@/features/claims/repositories/claims.repository";
+import { hasHigherAmountRevisionRequest } from "@/features/claims/services/claim-inspection.service";
 import type { DashboardClaim } from "@/features/claims/services/claims.service";
 import { claimStatusCopy, getClaimantClaims } from "@/features/claims/services/claims.service";
 import {
@@ -42,20 +45,25 @@ function appendFeedback(pathname: string, error?: string, message?: string) {
   return params.size ? `${pathname}?${params.toString()}` : pathname;
 }
 
-function getClaimantActionContent(claim: DashboardClaim, redirectTo: string) {
+function getClaimantActionContent(claim: DashboardClaim, redirectTo: string, higherAmountReviewPending: boolean) {
   switch (claim.status) {
     case "DetailsRequested":
       return <ClaimantDetailsResponseForm claimId={claim.id} redirectTo={redirectTo} />;
     case "Approved":
       return (
         <>
-          <p className="claim-action-note">Approve to close, or request a higher amount with justification.</p>
+          <p className="claim-action-note">Approve to close, or request a higher amount with a required visual inspection.</p>
           <ClaimantClaimConfirmationForm claimId={claim.id} redirectTo={redirectTo} />
           <ClaimantAmountRequestForm claimId={claim.id} redirectTo={redirectTo} />
         </>
       );
-    case "Reviewing":
     case "Estimated":
+      return higherAmountReviewPending ? (
+        <p className="claim-action-note">Your higher amount request is under review with the scheduled visual inspection.</p>
+      ) : (
+        <p className="claim-action-note">This claim is being handled by the adjuster right now.</p>
+      );
+    case "Reviewing":
       return <p className="claim-action-note">This claim is being handled by the adjuster right now.</p>;
     case "Closed":
       return <p className="claim-action-note">This claim is closed and no further action is required.</p>;
@@ -67,7 +75,7 @@ function getClaimantActionContent(claim: DashboardClaim, redirectTo: string) {
 export default async function ClaimantClaimDetailsPage({ params, searchParams }: ClaimantClaimDetailsPageProps) {
   const [{ claimId, status }, query] = await Promise.all([params, searchParams]);
   const { user } = await requireDashboardRole("claimant");
-  const claims = await getClaimantClaims(user.id);
+  const [claims, inspectionResult] = await Promise.all([getClaimantClaims(user.id), getClaimInspectionsByClaimId(claimId)]);
   const claim = claims.find((entry) => entry.id === claimId);
 
   if (!claim) {
@@ -84,15 +92,19 @@ export default async function ClaimantClaimDetailsPage({ params, searchParams }:
   }
 
   const queueHref = getClaimantQueueHrefForStatus(claim.status);
+  const inspections = inspectionResult.error ? [] : inspectionResult.data;
+  const higherAmountReviewPending = claim.status === "Estimated" && hasHigherAmountRevisionRequest(claim.description);
+  const shouldShowInspectionSection = inspections.length > 0;
 
   return (
     <ClaimDetailsView
-      actionContent={getClaimantActionContent(claim, canonicalHref)}
+      actionContent={getClaimantActionContent(claim, canonicalHref, higherAmountReviewPending)}
       backHref={queueHref}
       backLabel="Back to queue"
       claim={claim}
       description={claimStatusCopy[claim.status]}
       error={error}
+      inspectionContent={shouldShowInspectionSection ? <ClaimInspectionPanel inspections={inspections} /> : null}
       message={message}
       photosHref={getClaimantClaimPhotosHref(claim.id, claim.status)}
       title={claim.refNumber ?? "Claim Details"}

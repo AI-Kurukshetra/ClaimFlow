@@ -1228,3 +1228,156 @@ a.claim-queue-box:hover {
     min-width: 0;
   }
 }
+
+.estimate-insight-stack {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.estimate-summary-card,
+.estimate-line-item-card,
+.estimate-total-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.estimate-summary-card h5,
+.estimate-line-item-card h5 {
+  margin: 8px 0 10px;
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
+.estimate-summary-copy,
+.estimate-line-item-meta,
+.estimate-line-item-rationale,
+.estimate-total-card span {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+.estimate-summary-copy {
+  white-space: pre-line;
+}
+
+.estimate-line-item-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.estimate-line-item-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.estimate-line-item-head strong,
+.estimate-total-card strong {
+  font-size: 1.2rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.estimate-line-item-rationale {
+  margin-top: 12px;
+}
+
+.estimate-total-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(145deg, rgba(13, 107, 95, 0.1), rgba(255, 255, 255, 0.82));
+}
+
+@media (max-width: 640px) {
+  .estimate-line-item-head,
+  .estimate-total-card {
+    flex-direction: column;
+    align-items: start;
+  }
+}
+
+.inspection-stack {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.inspection-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.inspection-card,
+.inspection-action-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.inspection-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.inspection-card h5,
+.inspection-form-copy h5 {
+  margin: 8px 0 10px;
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
+
+.inspection-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(13, 107, 95, 0.12);
+  color: var(--primary);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.inspection-card-meta,
+.inspection-card-copy,
+.inspection-form-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+.inspection-card-copy {
+  margin-top: 12px;
+}
+
+.inspection-form-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.inspection-empty-state {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .inspection-card-head {
+    flex-direction: column;
+    align-items: start;
+  }
+}
