@@ -111,15 +111,19 @@ function normalizeWorkflowStatus(status: string | null): ClaimStatus {
 }
 
 function appendWorkflowNote(baseDescription: string | null, title: string, note: string) {
-  const base = baseDescription?.trim() ?? "";
+  const base = (baseDescription ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .replace(/\n{2,}/g, "\n");
   const timestamp = new Date().toISOString();
-  const entry = `[${timestamp}] ${title}: ${note.trim()}`;
+  const compactNote = note.trim().replace(/\s*\r?\n\s*/g, " ");
+  const entry = `[${timestamp}] ${title}: ${compactNote}`;
 
   if (!base) {
     return entry;
   }
 
-  return `${entry}\n\n${base}`;
+  return `${entry}\n${base}`;
 }
 
 function isLikelyStatusConstraintError(message: string | undefined) {
@@ -609,6 +613,8 @@ export async function requestHigherAmountByClaimant(payload: ClaimantAmountReque
     message: "Amount revision request submitted. Claim moved back to Reviewing.",
   } as const;
 }
+
+
 
 
 

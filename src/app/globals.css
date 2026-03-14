@@ -36,8 +36,13 @@ a {
   color: inherit;
 }
 
-.auth-page,
 .dashboard-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.auth-page{
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -382,7 +387,6 @@ button {
   grid-template-columns: 320px minmax(0, 1fr);
   min-height: calc(100vh - 48px);
   border: 1px solid var(--border);
-  border-radius: 32px;
   background: rgba(255, 251, 244, 0.82);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
@@ -629,6 +633,7 @@ button {
 
 .claim-description {
   margin: 16px 0 18px;
+  white-space: pre-line;
 }
 
 .claim-meta {
@@ -811,6 +816,7 @@ button {
   color: var(--muted);
   font-family: Arial, Helvetica, sans-serif;
 }
+
 
 
 

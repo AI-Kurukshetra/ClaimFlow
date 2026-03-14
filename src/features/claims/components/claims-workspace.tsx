@@ -48,6 +48,47 @@ function formatCurrency(value: number | null) {
   }).format(value);
 }
 
+function formatClaimDescription(value: string | null) {
+  if (!value) {
+    return "No incident description has been added yet.";
+  }
+
+  const normalized = value.replace(/\r\n/g, "\n");
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length === 0) {
+    return "No incident description has been added yet.";
+  }
+
+  const timestampedEntries: { line: string; timestamp: number }[] = [];
+  const regularEntries: string[] = [];
+
+  lines.forEach((line) => {
+    const match = line.match(/^\[([^\]]+)\]\s/);
+
+    if (!match) {
+      regularEntries.push(line);
+      return;
+    }
+
+    const parsed = Date.parse(match[1]);
+
+    if (Number.isNaN(parsed)) {
+      regularEntries.push(line);
+      return;
+    }
+
+    timestampedEntries.push({ line, timestamp: parsed });
+  });
+
+  timestampedEntries.sort((a, b) => b.timestamp - a.timestamp);
+
+  return [...timestampedEntries.map((entry) => entry.line), ...regularEntries].join("\n");
+}
+
 export function ClaimsWorkspace({
   claims,
   description,
@@ -116,7 +157,7 @@ export function ClaimsWorkspace({
                   <span className={`status-pill status-${claim.status.toLowerCase()}`}>{claim.status}</span>
                 </div>
 
-                <p className="claim-description">{claim.description ?? "No incident description has been added yet."}</p>
+                <p className="claim-description">{formatClaimDescription(claim.description)}</p>
 
                 <dl className="claim-meta">
                   <div>
