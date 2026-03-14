@@ -54,3 +54,7 @@ export function getSupabaseAdminEnv() {
     serviceRoleKey: requiredAdminEnv.serviceRoleKey as string,
   };
 }
+
+export function getAppUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}

@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { inviteAdjusterAction } from "@/features/admin/actions";
 import { InviteAdjusterForm } from "@/features/admin/components/invite-adjuster-form";
 import { logoutAction } from "@/features/auth/actions";
-import { getAuthenticatedUser } from "@/features/auth/services/auth.service";
-import { getUserProfile } from "@/features/profiles/services/profile.service";
+import { getDashboardContext, getDashboardHomeHref } from "@/features/claims/services/dashboard.service";
 
 type DashboardPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -15,17 +14,10 @@ function getParamValue(value: string | string[] | undefined) {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const user = await getAuthenticatedUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
+  const { profile, role } = await getDashboardContext();
   const params = await searchParams;
-  const profile = await getUserProfile(user.id);
-  const isAdmin = profile?.role === "admin";
 
-  if (isAdmin) {
+  if (role === "admin") {
     return (
       <main className="dashboard-page">
         <section className="dashboard-card dashboard-stack">
@@ -53,34 +45,5 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     );
   }
 
-  return (
-    <main className="dashboard-page">
-      <section className="dashboard-card">
-        <div>
-          <p className="eyebrow">ClaimFlow</p>
-          <h1>Dashboard</h1>
-          <p className="dashboard-copy">
-            Auth is wired. Additional product flows can now be layered on top of this base.
-          </p>
-        </div>
-
-        <dl className="user-summary">
-          <div>
-            <dt>Signed in as</dt>
-            <dd>{user.email}</dd>
-          </div>
-          <div>
-            <dt>User ID</dt>
-            <dd>{user.id}</dd>
-          </div>
-        </dl>
-
-        <form action={logoutAction}>
-          <button type="submit" className="secondary-button">
-            Sign out
-          </button>
-        </form>
-      </section>
-    </main>
-  );
+  redirect(getDashboardHomeHref(profile?.role));
 }

@@ -44,6 +44,10 @@ a {
   padding: 24px;
 }
 
+.claimant-dashboard-page {
+  place-items: stretch;
+}
+
 .auth-card,
 .dashboard-card {
   width: min(100%, 460px);
@@ -57,6 +61,112 @@ a {
 
 .dashboard-card {
   width: min(100%, 720px);
+}
+
+.claimant-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: calc(100vh - 48px);
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background: rgba(255, 251, 244, 0.82);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.claimant-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 28px;
+  padding: 32px 24px;
+  background: linear-gradient(180deg, rgba(13, 107, 95, 0.95) 0%, rgba(10, 79, 71, 0.92) 100%);
+  color: #f5f1e7;
+}
+
+.claimant-brand h1 {
+  margin: 8px 0 12px;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.claimant-brand p:last-child {
+  margin: 0;
+  color: rgba(245, 241, 231, 0.76);
+}
+
+.claimant-nav {
+  display: grid;
+  gap: 12px;
+}
+
+.claimant-nav-item {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid rgba(245, 241, 231, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f1e7;
+  text-align: left;
+}
+
+.claimant-nav-item.active {
+  background: #f3ead8;
+  color: #16352f;
+  transform: none;
+}
+
+.claimant-content {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+}
+
+.claimant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.claimant-header h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1;
+}
+
+.claimant-header p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.claimant-main {
+  padding: 32px;
+}
+
+.claimant-title-block {
+  width: 100%;
+  min-height: 320px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(255, 247, 234, 0.94));
+}
+
+.claimant-title-block h3 {
+  margin: 8px 0 12px;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
+}
+
+.claimant-title-block p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  max-width: 640px;
 }
 
 .dashboard-stack {
@@ -91,6 +201,12 @@ a {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--primary);
+}
+
+.claimant-sidebar .eyebrow,
+.claimant-header .eyebrow,
+.claimant-title-block .eyebrow {
+  color: inherit;
 }
 
 .auth-form {
@@ -225,6 +341,21 @@ button {
   word-break: break-word;
 }
 
+@media (max-width: 960px) {
+  .claimant-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .claimant-sidebar {
+    padding: 24px;
+  }
+
+  .claimant-header,
+  .claimant-main {
+    padding: 24px;
+  }
+}
+
 @media (max-width: 640px) {
   .auth-card,
   .dashboard-card {
@@ -235,4 +366,440 @@ button {
   .split-fields {
     grid-template-columns: 1fr;
   }
+
+  .claimant-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
+
+.portal-dashboard-page {
+  place-items: stretch;
+}
+
+.portal-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  min-height: calc(100vh - 48px);
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background: rgba(255, 251, 244, 0.82);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.portal-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 28px;
+  padding: 32px 24px;
+  background: linear-gradient(180deg, rgba(13, 107, 95, 0.95) 0%, rgba(10, 79, 71, 0.92) 100%);
+  color: #f5f1e7;
+}
+
+.portal-brand h1 {
+  margin: 8px 0 12px;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.portal-brand p:last-child {
+  margin: 0;
+  color: rgba(245, 241, 231, 0.76);
+}
+
+.portal-nav {
+  display: grid;
+  gap: 12px;
+}
+
+.portal-nav-item {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid rgba(245, 241, 231, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f1e7;
+  text-decoration: none;
+}
+
+.portal-nav-item.active {
+  background: #f3ead8;
+  color: #16352f;
+}
+
+.portal-nav-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+}
+
+.portal-nav-copy {
+  color: rgba(245, 241, 231, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+.portal-nav-item.active .portal-nav-copy {
+  color: rgba(22, 53, 47, 0.72);
+}
+
+.nav-badge {
+  min-width: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(245, 241, 231, 0.14);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.portal-nav-item.active .nav-badge {
+  background: rgba(13, 107, 95, 0.12);
+}
+
+.portal-content {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+}
+
+.portal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.portal-header h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1;
+}
+
+.portal-header p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.portal-main {
+  padding: 32px;
+}
+
+.workspace-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.workspace-hero,
+.claims-section,
+.empty-state {
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(255, 247, 234, 0.94));
+}
+
+.workspace-hero {
+  padding: 28px;
+}
+
+.workspace-hero h3,
+.section-heading h4,
+.empty-state h5 {
+  margin: 8px 0 12px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.workspace-hero p:last-child,
+.section-heading p,
+.guide-card p,
+.stat-card p,
+.claim-description,
+.empty-state p {
+  margin: 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+.workspace-grid,
+.guide-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stat-card,
+.guide-card {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.stat-label {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.stat-card p,
+.guide-card p {
+  margin-top: 12px;
+}
+
+.guide-card h4,
+.claim-card h5 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.claims-section {
+  padding: 24px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-heading h4 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.section-heading p {
+  max-width: 360px;
+  text-align: right;
+}
+
+.claims-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.claim-card {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.claim-card-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.claim-ref {
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.claim-description {
+  margin: 16px 0 18px;
+}
+
+.claim-meta {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.claim-meta div {
+  display: grid;
+  gap: 6px;
+}
+
+.claim-meta dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.claim-meta dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-intake {
+  background: rgba(230, 182, 85, 0.18);
+  color: #805400;
+}
+
+.status-reviewing {
+  background: rgba(73, 103, 191, 0.12);
+  color: #25408f;
+}
+
+.status-estimated {
+  background: rgba(13, 107, 95, 0.12);
+  color: #0d6b5f;
+}
+
+.status-approved {
+  background: rgba(31, 122, 79, 0.12);
+  color: #1f7a4f;
+}
+
+.status-closed {
+  background: rgba(30, 31, 27, 0.1);
+  color: #393b33;
+}
+
+.empty-state {
+  padding: 28px;
+  margin-top: 24px;
+}
+
+.portal-sidebar .eyebrow,
+.portal-header .eyebrow,
+.workspace-hero .eyebrow,
+.section-heading .eyebrow {
+  color: inherit;
+}
+
+@media (max-width: 960px) {
+  .portal-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-sidebar,
+  .portal-header,
+  .portal-main {
+    padding: 24px;
+  }
+
+  .workspace-grid,
+  .guide-grid,
+  .claim-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .section-heading p {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .portal-header,
+  .claim-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-grid,
+  .guide-grid,
+  .claim-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-nav-item {
+    padding: 14px 16px;
+  }
+}
+
+.claim-form-wrap {
+  margin-top: 20px;
+}
+
+.claim-form {
+  display: grid;
+  gap: 16px;
+}
+
+.claim-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.claim-form input,
+.claim-form textarea,
+.claim-form select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.95rem;
+}
+
+.claim-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.claim-form-compact {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.claim-actions {
+  margin-top: 8px;
+}
+
+.claim-form .split-fields .primary-button,
+.claim-form .split-fields .secondary-button {
+  width: 100%;
+  min-width: 0;
+}
+
+.claim-action-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-family: Arial, Helvetica, sans-serif;
+}
+

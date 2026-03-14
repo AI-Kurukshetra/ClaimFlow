@@ -1,5 +1,6 @@
 import type { AuthError, User } from "@supabase/supabase-js";
 
+import { getAppUrl } from "@/config/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type InviteAdjusterRepositoryResult = {
@@ -13,6 +14,7 @@ export async function inviteAdjuster(input: {
   lastName: string;
 }) {
   const supabase = createSupabaseAdminClient();
+  const redirectTo = `${getAppUrl()}/auth/callback`;
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(input.email, {
     data: {
@@ -21,6 +23,7 @@ export async function inviteAdjuster(input: {
       full_name: `${input.firstName} ${input.lastName}`,
       role: "adjuster",
     },
+    redirectTo,
   });
 
   return {
