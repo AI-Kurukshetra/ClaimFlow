@@ -675,6 +675,10 @@ button {
   background: rgba(73, 103, 191, 0.12);
   color: #25408f;
 }
+.status-detailsrequested {
+  background: rgba(171, 58, 43, 0.12);
+  color: #8c2f23;
+}
 
 .status-estimated {
   background: rgba(13, 107, 95, 0.12);
@@ -787,8 +791,13 @@ button {
   border-top: 1px dashed var(--border);
 }
 
+
 .claim-actions {
   margin-top: 8px;
+}
+
+.claim-actions > * + * {
+  margin-top: 12px;
 }
 
 .claim-form .split-fields .primary-button,
@@ -802,4 +811,9 @@ button {
   color: var(--muted);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+
+
+
 

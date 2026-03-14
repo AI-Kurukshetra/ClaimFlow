@@ -115,15 +115,26 @@ export async function updateClaimForAdjuster(input: {
   claimId: string;
   adjusterId: string;
   status: string;
+  description?: string;
 }) {
   const supabase = await createSupabaseServerClient();
 
+  const updatePayload: {
+    adjuster_id: string;
+    status: string;
+    description?: string;
+  } = {
+    adjuster_id: input.adjusterId,
+    status: input.status,
+  };
+
+  if (typeof input.description === "string") {
+    updatePayload.description = input.description;
+  }
+
   const { data, error } = await supabase
     .from("claims")
-    .update({
-      adjuster_id: input.adjusterId,
-      status: input.status,
-    })
+    .update(updatePayload)
     .eq("id", input.claimId)
     .or(`adjuster_id.eq.${input.adjusterId},adjuster_id.is.null`)
     .select("id, claimant_id, adjuster_id, ref_number, status, description, vehicle_info, incident_date, fraud_score, created_at")
@@ -135,18 +146,27 @@ export async function updateClaimForAdjuster(input: {
 export async function updateClaimForClaimant(input: {
   claimId: string;
   claimantId: string;
-  status: string;
+  expectedStatuses: string[];
+  updates: {
+    status: string;
+    description?: string;
+  };
 }) {
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("claims")
-    .update({
-      status: input.status,
-    })
+    .update(input.updates)
     .eq("id", input.claimId)
-    .eq("claimant_id", input.claimantId)
-    .eq("status", "Approved")
+    .eq("claimant_id", input.claimantId);
+
+  if (input.expectedStatuses.length === 1) {
+    query = query.eq("status", input.expectedStatuses[0]);
+  } else {
+    query = query.in("status", input.expectedStatuses);
+  }
+
+  const { data, error } = await query
     .select("id, claimant_id, adjuster_id, ref_number, status, description, vehicle_info, incident_date, fraud_score, created_at")
     .single<ClaimRecord>();
 
@@ -246,3 +266,4 @@ export async function listAdjusters() {
     error,
   };
 }
+

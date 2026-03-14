@@ -20,7 +20,7 @@ export default async function ClaimantDashboardLayout({
         fullName={profile?.full_name ?? "Claimant"}
         navigationItems={buildClaimantNavigation(claims)}
         onSignOut={logoutAction}
-        portalDescription="Track submissions, monitor pending updates, and keep your completed claims organized."
+        portalDescription="Track submissions, handle required actions, and keep completed claims organized."
         portalTitle="Claimant Portal"
       >
         {children}
@@ -28,3 +28,4 @@ export default async function ClaimantDashboardLayout({
     </main>
   );
 }
+

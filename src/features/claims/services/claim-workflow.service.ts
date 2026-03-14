@@ -36,6 +36,19 @@ export type ClaimantConfirmationPayload = {
   redirectTo: string;
 };
 
+export type ClaimantDetailsPayload = {
+  additionalDetails: string;
+  claimId: string;
+  redirectTo: string;
+};
+
+export type ClaimantAmountRequestPayload = {
+  claimId: string;
+  justification: string;
+  redirectTo: string;
+  requestedAmountRaw: string;
+};
+
 const claimPhotosBucket = "claim-photos";
 
 function sanitizeText(value: FormDataEntryValue | null) {
@@ -83,6 +96,9 @@ function normalizeWorkflowStatus(status: string | null): ClaimStatus {
     case "intake":
     case "reviewing":
       return "Reviewing";
+    case "detailsrequested":
+    case "details_requested":
+      return "DetailsRequested";
     case "estimated":
       return "Estimated";
     case "approved":
@@ -92,6 +108,18 @@ function normalizeWorkflowStatus(status: string | null): ClaimStatus {
     default:
       return "Reviewing";
   }
+}
+
+function appendWorkflowNote(baseDescription: string | null, title: string, note: string) {
+  const base = baseDescription?.trim() ?? "";
+  const timestamp = new Date().toISOString();
+  const entry = `[${timestamp}] ${title}: ${note.trim()}`;
+
+  if (!base) {
+    return entry;
+  }
+
+  return `${entry}\n\n${base}`;
 }
 
 function isLikelyStatusConstraintError(message: string | undefined) {
@@ -300,8 +328,11 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
 
   const currentStatus = normalizeWorkflowStatus(claim.status);
 
-  if (currentStatus === "Approved" || currentStatus === "Closed") {
-    return { ok: false, error: "No adjuster updates are allowed after approval. Waiting for claimant confirmation." } as const;
+  if (currentStatus === "Approved" || currentStatus === "Closed" || currentStatus === "DetailsRequested") {
+    return {
+      ok: false,
+      error: "This claim is waiting on claimant action. Adjuster updates are blocked until the claimant responds.",
+    } as const;
   }
 
   const parsedAmount = parseCurrency(payload.totalAmountRaw);
@@ -314,18 +345,29 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
 
   if (currentStatus === "Estimated") {
     if (parsedAmount === null) {
-      return { ok: false, error: "Estimate amount is required before moving the claim to Approved." } as const;
+      return { ok: false, error: "Estimate amount is required before sending to claimant approval." } as const;
     }
 
     targetStatus = "Approved";
   } else {
-    if (payload.status !== "Reviewing" && payload.status !== "Estimated") {
-      return { ok: false, error: "From Reviewing, you can only save additional details or move to Estimated." } as const;
+    if (payload.status !== "Estimated" && payload.status !== "DetailsRequested") {
+      return {
+        ok: false,
+        error: "From Reviewing, you can only move to Estimation or request additional details from claimant.",
+      } as const;
+    }
+
+    if (payload.status === "DetailsRequested" && !payload.adjusterNotes) {
+      return { ok: false, error: "Add a note so claimant knows what additional details are required." } as const;
     }
 
     targetStatus = payload.status;
   }
 
+  const descriptionForStatusUpdate =
+    targetStatus === "DetailsRequested"
+      ? appendWorkflowNote(claim.description, "Adjuster additional details request", payload.adjusterNotes)
+      : undefined;
   const statusCandidates = getDbStatusCandidates(targetStatus, claim.status);
 
   let updateErrorMessage: string | null = null;
@@ -336,6 +378,7 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
       claimId: payload.claimId,
       adjusterId: user.id,
       status: dbStatus,
+      description: descriptionForStatusUpdate,
     });
 
     if (!updateResult.error) {
@@ -354,7 +397,8 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
     return { ok: false, error: updateErrorMessage ?? "Unable to update claim status." } as const;
   }
 
-  const shouldWriteEstimate = parsedAmount !== null || payload.adjusterNotes.length > 0 || currentStatus === "Estimated";
+  const shouldWriteEstimate =
+    parsedAmount !== null || (payload.adjusterNotes.length > 0 && targetStatus !== "DetailsRequested") || currentStatus === "Estimated";
 
   if (shouldWriteEstimate) {
     const estimateResult = await upsertEstimate({
@@ -372,27 +416,44 @@ export async function updateClaimByAdjuster(payload: AdjusterUpdatePayload) {
   if (currentStatus === "Estimated") {
     return {
       ok: true,
-      message: "Estimate saved. Claim moved to Approved and is waiting for claimant confirmation.",
+      message: "Estimate sent to claimant for approval.",
     } as const;
   }
 
-  if (targetStatus === "Estimated") {
+  if (targetStatus === "DetailsRequested") {
     return {
       ok: true,
-      message: "Claim moved to Estimated.",
+      message: "Requested additional details from claimant.",
     } as const;
   }
 
   return {
     ok: true,
-    message: "Additional details saved.",
+    message: "Claim moved to Estimation.",
   } as const;
 }
 
 export function getClaimantConfirmationPayload(formData: FormData): ClaimantConfirmationPayload {
   return {
     claimId: sanitizeText(formData.get("claimId")),
-    redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/pending-claims",
+    redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/action-required",
+  };
+}
+
+export function getClaimantDetailsPayload(formData: FormData): ClaimantDetailsPayload {
+  return {
+    claimId: sanitizeText(formData.get("claimId")),
+    additionalDetails: sanitizeText(formData.get("additionalDetails")),
+    redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/action-required",
+  };
+}
+
+export function getClaimantAmountRequestPayload(formData: FormData): ClaimantAmountRequestPayload {
+  return {
+    claimId: sanitizeText(formData.get("claimId")),
+    requestedAmountRaw: sanitizeText(formData.get("requestedAmount")),
+    justification: sanitizeText(formData.get("justification")),
+    redirectTo: sanitizeText(formData.get("redirectTo")) || "/dashboard/claimant/action-required",
   };
 }
 
@@ -412,27 +473,142 @@ export async function confirmClaimByClaimant(payload: ClaimantConfirmationPayloa
   const claim = claimResult.data;
 
   if (claim.claimant_id !== user.id) {
-    return { ok: false, error: "You can only confirm your own claims." } as const;
+    return { ok: false, error: "You can only approve your own claims." } as const;
   }
 
   const status = normalizeWorkflowStatus(claim.status);
 
   if (status !== "Approved") {
-    return { ok: false, error: "Only approved claims can be confirmed." } as const;
+    return { ok: false, error: "Only claims awaiting claimant approval can be closed." } as const;
   }
 
   const updateResult = await updateClaimForClaimant({
     claimId: payload.claimId,
     claimantId: user.id,
-    status: "Closed",
+    expectedStatuses: ["Approved"],
+    updates: {
+      status: "Closed",
+    },
   });
 
   if (updateResult.error || !updateResult.data) {
-    return { ok: false, error: updateResult.error?.message ?? "Unable to confirm this claim." } as const;
+    return { ok: false, error: updateResult.error?.message ?? "Unable to close this claim." } as const;
   }
 
   return {
     ok: true,
-    message: `Claim ${updateResult.data.ref_number ?? updateResult.data.id} confirmed and moved to Closed.`,
+    message: `Claim ${updateResult.data.ref_number ?? updateResult.data.id} approved and moved to Closed.`,
   } as const;
 }
+
+export async function submitAdditionalDetailsByClaimant(payload: ClaimantDetailsPayload) {
+  const { user } = await requireDashboardRole("claimant");
+
+  if (!payload.claimId) {
+    return { ok: false, error: "Claim id is required." } as const;
+  }
+
+  if (!payload.additionalDetails) {
+    return { ok: false, error: "Additional details are required." } as const;
+  }
+
+  const claimResult = await getClaimById(payload.claimId);
+
+  if (claimResult.error || !claimResult.data) {
+    return { ok: false, error: claimResult.error?.message ?? "Claim not found." } as const;
+  }
+
+  const claim = claimResult.data;
+
+  if (claim.claimant_id !== user.id) {
+    return { ok: false, error: "You can only update your own claims." } as const;
+  }
+
+  const status = normalizeWorkflowStatus(claim.status);
+
+  if (status !== "DetailsRequested") {
+    return { ok: false, error: "This claim is not currently waiting for additional details." } as const;
+  }
+
+  const updatedDescription = appendWorkflowNote(claim.description, "Claimant additional details", payload.additionalDetails);
+
+  const updateResult = await updateClaimForClaimant({
+    claimId: payload.claimId,
+    claimantId: user.id,
+    expectedStatuses: ["DetailsRequested"],
+    updates: {
+      status: "Reviewing",
+      description: updatedDescription,
+    },
+  });
+
+  if (updateResult.error || !updateResult.data) {
+    return { ok: false, error: updateResult.error?.message ?? "Unable to submit additional details." } as const;
+  }
+
+  return {
+    ok: true,
+    message: "Additional details submitted. Claim returned to Reviewing.",
+  } as const;
+}
+
+export async function requestHigherAmountByClaimant(payload: ClaimantAmountRequestPayload) {
+  const { user } = await requireDashboardRole("claimant");
+
+  if (!payload.claimId) {
+    return { ok: false, error: "Claim id is required." } as const;
+  }
+
+  const requestedAmount = parseCurrency(payload.requestedAmountRaw);
+
+  if (requestedAmount === null || requestedAmount <= 0) {
+    return { ok: false, error: "Requested amount must be a valid positive number." } as const;
+  }
+
+  if (!payload.justification) {
+    return { ok: false, error: "Justification is required when requesting a higher amount." } as const;
+  }
+
+  const claimResult = await getClaimById(payload.claimId);
+
+  if (claimResult.error || !claimResult.data) {
+    return { ok: false, error: claimResult.error?.message ?? "Claim not found." } as const;
+  }
+
+  const claim = claimResult.data;
+
+  if (claim.claimant_id !== user.id) {
+    return { ok: false, error: "You can only request changes on your own claims." } as const;
+  }
+
+  const status = normalizeWorkflowStatus(claim.status);
+
+  if (status !== "Approved") {
+    return { ok: false, error: "Higher amount requests are only allowed during claimant approval." } as const;
+  }
+
+  const note = `Requested amount: $${requestedAmount.toFixed(2)}. Justification: ${payload.justification}`;
+  const updatedDescription = appendWorkflowNote(claim.description, "Claimant amount revision request", note);
+
+  const updateResult = await updateClaimForClaimant({
+    claimId: payload.claimId,
+    claimantId: user.id,
+    expectedStatuses: ["Approved"],
+    updates: {
+      status: "Reviewing",
+      description: updatedDescription,
+    },
+  });
+
+  if (updateResult.error || !updateResult.data) {
+    return { ok: false, error: updateResult.error?.message ?? "Unable to submit amount revision request." } as const;
+  }
+
+  return {
+    ok: true,
+    message: "Amount revision request submitted. Claim moved back to Reviewing.",
+  } as const;
+}
+
+
+

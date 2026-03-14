@@ -30,7 +30,7 @@ export default async function AdjusterReviewingPage({ searchParams }: AdjusterPa
       message={getParamValue(params.message)}
       guides={[
         {
-          description: "Add additional details while the claim stays in Reviewing, or move it to the next step when ready.",
+          description: "Either move the claim to Estimation or request additional details from the claimant.",
           title: "Review decisions",
         },
         {
@@ -62,3 +62,4 @@ export default async function AdjusterReviewingPage({ searchParams }: AdjusterPa
     />
   );
 }
+

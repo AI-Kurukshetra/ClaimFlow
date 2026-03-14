@@ -16,21 +16,21 @@ export function AdjusterClaimActionForm({ claimId, mode, redirectTo }: AdjusterC
       {mode === "reviewing" ? (
         <>
           <label>
-            <span>Additional details (optional)</span>
+            <span>Notes for claimant</span>
             <textarea
               name="adjusterNotes"
               rows={3}
               maxLength={2000}
-              placeholder="Validation notes, missing information, or next-step context."
+              placeholder="If requesting more details, specify exactly what claimant should add."
             />
           </label>
 
           <div className="split-fields">
-            <button className="secondary-button" type="submit" name="status" value="Reviewing">
-              Save Additional Details
+            <button className="secondary-button" type="submit" name="status" value="DetailsRequested">
+              Request Additional Details
             </button>
             <button className="primary-button" type="submit" name="status" value="Estimated">
-              Move to Estimated
+              Move to Estimation
             </button>
           </div>
         </>
@@ -39,7 +39,7 @@ export function AdjusterClaimActionForm({ claimId, mode, redirectTo }: AdjusterC
           <input type="hidden" name="status" value="Approved" />
 
           <label>
-            <span>Estimate total (USD)</span>
+            <span>Estimate amount (USD)</span>
             <input name="totalAmount" type="number" step="0.01" min={0} placeholder="1200" required />
           </label>
 
@@ -53,7 +53,7 @@ export function AdjusterClaimActionForm({ claimId, mode, redirectTo }: AdjusterC
             />
           </label>
 
-          <SubmitButton idleLabel="Save Amount & Move to Approved" pendingLabel="Saving..." />
+          <SubmitButton idleLabel="Send to Client Approval" pendingLabel="Sending..." />
         </>
       )}
     </form>

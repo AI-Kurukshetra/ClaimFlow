@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import {
   confirmClaimByClaimant,
   getAdjusterUpdatePayload,
+  getClaimantAmountRequestPayload,
   getClaimantConfirmationPayload,
+  getClaimantDetailsPayload,
+  requestHigherAmountByClaimant,
+  submitAdditionalDetailsByClaimant,
   submitClaimByClaimant,
   updateClaimByAdjuster,
 } from "@/features/claims/services/claim-workflow.service";
@@ -53,8 +57,32 @@ export async function updateClaimByAdjusterAction(formData: FormData) {
 
 export async function confirmClaimByClaimantAction(formData: FormData) {
   const payload = getClaimantConfirmationPayload(formData);
-  const redirectTarget = payload.redirectTo || "/dashboard/claimant/pending-claims";
+  const redirectTarget = payload.redirectTo || "/dashboard/claimant/action-required";
   const result = await confirmClaimByClaimant(payload);
+
+  if (!result.ok) {
+    redirect(buildRedirectPath(redirectTarget, "error", result.error));
+  }
+
+  redirect(buildRedirectPath(redirectTarget, "message", result.message));
+}
+
+export async function submitAdditionalDetailsByClaimantAction(formData: FormData) {
+  const payload = getClaimantDetailsPayload(formData);
+  const redirectTarget = payload.redirectTo || "/dashboard/claimant/action-required";
+  const result = await submitAdditionalDetailsByClaimant(payload);
+
+  if (!result.ok) {
+    redirect(buildRedirectPath(redirectTarget, "error", result.error));
+  }
+
+  redirect(buildRedirectPath(redirectTarget, "message", result.message));
+}
+
+export async function requestHigherAmountByClaimantAction(formData: FormData) {
+  const payload = getClaimantAmountRequestPayload(formData);
+  const redirectTarget = payload.redirectTo || "/dashboard/claimant/action-required";
+  const result = await requestHigherAmountByClaimant(payload);
 
   if (!result.ok) {
     redirect(buildRedirectPath(redirectTarget, "error", result.error));

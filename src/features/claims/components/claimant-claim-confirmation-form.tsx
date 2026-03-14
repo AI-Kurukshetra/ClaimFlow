@@ -12,7 +12,7 @@ export function ClaimantClaimConfirmationForm({ claimId, redirectTo }: ClaimantC
       <input type="hidden" name="claimId" value={claimId} />
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
-      <SubmitButton idleLabel="Confirm & Close Claim" pendingLabel="Confirming..." />
+      <SubmitButton idleLabel="Approve & Close Claim" pendingLabel="Approving..." />
     </form>
   );
 }

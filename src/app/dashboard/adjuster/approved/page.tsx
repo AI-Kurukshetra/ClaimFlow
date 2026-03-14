@@ -59,7 +59,8 @@ export default async function AdjusterApprovedPage({ searchParams }: AdjusterPag
           value: String(claims.length),
         },
       ]}
-      title="Approved"
+      title="Client Approval"
     />
   );
 }
+

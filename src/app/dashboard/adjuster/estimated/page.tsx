@@ -63,7 +63,8 @@ export default async function AdjusterEstimatedPage({ searchParams }: AdjusterPa
           value: String(claims.length),
         },
       ]}
-      title="Estimated"
+      title="Estimation"
     />
   );
 }
+

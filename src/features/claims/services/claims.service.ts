@@ -7,7 +7,7 @@ import {
   listPhotosForClaimIds,
 } from "@/features/claims/repositories/claims.repository";
 
-export const claimStatuses = ["Reviewing", "Estimated", "Approved", "Closed"] as const;
+export const claimStatuses = ["Reviewing", "DetailsRequested", "Estimated", "Approved", "Closed"] as const;
 
 export type ClaimStatus = (typeof claimStatuses)[number];
 
@@ -32,9 +32,10 @@ type DashboardNavigationItem = {
 };
 
 export const claimStatusCopy: Record<ClaimStatus, string> = {
-  Reviewing: "Claim is being reviewed and validated.",
-  Estimated: "Damage and cost estimates are prepared.",
-  Approved: "Claim is approved and waiting for claimant confirmation.",
+  Reviewing: "Claim is being reviewed by the adjuster.",
+  DetailsRequested: "Claimant must provide additional details requested by the adjuster.",
+  Estimated: "Estimate is being prepared and finalized.",
+  Approved: "Estimate was sent to claimant for approval.",
   Closed: "Claim process is finished and archived.",
 };
 
@@ -53,6 +54,9 @@ function normalizeClaimStatus(status: string | null): ClaimStatus {
     case "intake":
     case "reviewing":
       return "Reviewing";
+    case "detailsrequested":
+    case "details_requested":
+      return "DetailsRequested";
     case "estimated":
       return "Estimated";
     case "approved":
@@ -144,6 +148,14 @@ export function filterClaimsByStatus(claims: DashboardClaim[], status: ClaimStat
   return claims.filter((claim) => claim.status === status);
 }
 
+export function filterActionRequiredClaimantClaims(claims: DashboardClaim[]) {
+  return claims.filter((claim) => claim.status === "DetailsRequested" || claim.status === "Approved");
+}
+
+export function filterInProgressClaimantClaims(claims: DashboardClaim[]) {
+  return claims.filter((claim) => claim.status === "Reviewing" || claim.status === "Estimated");
+}
+
 export function filterActiveClaimantClaims(claims: DashboardClaim[]) {
   return claims.filter((claim) => claim.status !== "Closed");
 }
@@ -157,7 +169,8 @@ export function sumEstimateTotals(claims: DashboardClaim[]) {
 }
 
 export function buildClaimantNavigation(claims: DashboardClaim[]): DashboardNavigationItem[] {
-  const activeClaims = filterActiveClaimantClaims(claims);
+  const actionRequiredClaims = filterActionRequiredClaimantClaims(claims);
+  const inProgressClaims = filterInProgressClaimantClaims(claims);
   const closedClaims = filterClosedClaimantClaims(claims);
 
   return [
@@ -167,25 +180,51 @@ export function buildClaimantNavigation(claims: DashboardClaim[]): DashboardNavi
       label: "Add Claims",
     },
     {
-      count: activeClaims.length,
-      description: "Track claims that are still moving through review, estimating, and approval.",
-      href: "/dashboard/claimant/pending-claims",
-      label: "Pending Claims",
+      count: actionRequiredClaims.length,
+      description: "Claims where you need to respond with details or approval decisions.",
+      href: "/dashboard/claimant/action-required",
+      label: "Action Required",
+    },
+    {
+      count: inProgressClaims.length,
+      description: "Claims currently in adjuster review or estimation.",
+      href: "/dashboard/claimant/in-progress",
+      label: "In Progress",
     },
     {
       count: closedClaims.length,
       description: "Review archived claims that have been fully completed.",
       href: "/dashboard/claimant/previous-claims",
-      label: "Previous Claims",
+      label: "Closed Claims",
     },
   ];
 }
 
 export function buildAdjusterNavigation(claims: DashboardClaim[]): DashboardNavigationItem[] {
-  return claimStatuses.map((status) => ({
-    count: filterClaimsByStatus(claims, status).length,
-    description: claimStatusCopy[status],
-    href: `/dashboard/adjuster/${status.toLowerCase()}`,
-    label: status,
-  }));
+  return [
+    {
+      count: filterClaimsByStatus(claims, "Reviewing").length,
+      description: claimStatusCopy.Reviewing,
+      href: "/dashboard/adjuster/reviewing",
+      label: "Reviewing",
+    },
+    {
+      count: filterClaimsByStatus(claims, "Estimated").length,
+      description: claimStatusCopy.Estimated,
+      href: "/dashboard/adjuster/estimated",
+      label: "Estimation",
+    },
+    {
+      count: filterClaimsByStatus(claims, "Approved").length,
+      description: claimStatusCopy.Approved,
+      href: "/dashboard/adjuster/approved",
+      label: "Client Approval",
+    },
+    {
+      count: filterClaimsByStatus(claims, "Closed").length,
+      description: claimStatusCopy.Closed,
+      href: "/dashboard/adjuster/closed",
+      label: "Closed",
+    },
+  ];
 }
