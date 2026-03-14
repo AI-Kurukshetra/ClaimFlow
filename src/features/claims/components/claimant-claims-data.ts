@@ -81,10 +81,6 @@ async function loadClaimantClaimsPayload() {
   return pendingPayloadRequest;
 }
 
-export function preloadClaimantClaimsPayload() {
-  void loadClaimantClaimsPayload();
-}
-
 export function useClaimantClaimsPayload(enabled = true) {
   const [payload, setPayload] = useState<ClaimantClaimsPayload | null>(cachedPayload);
   const [error, setError] = useState<string | null>(null);

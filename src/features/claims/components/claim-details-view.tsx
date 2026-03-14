@@ -43,7 +43,7 @@ export function ClaimDetailsView({
         <p className="workspace-hero-copy">{description}</p>
 
         <div className="claim-detail-link-row">
-          <Link href={backHref} className="claim-detail-back-link">
+          <Link href={backHref} prefetch={false} className="claim-detail-back-link">
             {backLabel}
           </Link>
 

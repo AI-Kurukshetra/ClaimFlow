@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-import {
-  preloadAdjusterClaimsPayload,
-  useAdjusterClaimsPayload,
-} from "@/features/claims/components/adjuster-claims-data";
-import {
-  preloadClaimantClaimsPayload,
-  useClaimantClaimsPayload,
-} from "@/features/claims/components/claimant-claims-data";
+import { useAdjusterClaimsPayload } from "@/features/claims/components/adjuster-claims-data";
+import { useClaimantClaimsPayload } from "@/features/claims/components/claimant-claims-data";
 import { getDetailNavigationHref } from "@/features/claims/services/claim-status-routing";
 
 type NavigationItem = {
@@ -41,7 +35,6 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const detailNavigationHref = getDetailNavigationHref(pathname);
   const isClaimantPortal = pathname.startsWith("/dashboard/claimant");
   const isAdjusterPortal = pathname.startsWith("/dashboard/adjuster");
@@ -68,29 +61,6 @@ export function DashboardShell({
       }
     : null;
 
-  useEffect(() => {
-    if (isClaimantPortal) {
-      navigationItems
-        .filter((item) => item.href.startsWith("/dashboard/claimant"))
-        .forEach((item) => {
-          router.prefetch(item.href);
-        });
-
-      preloadClaimantClaimsPayload();
-      return;
-    }
-
-    if (isAdjusterPortal) {
-      navigationItems
-        .filter((item) => item.href.startsWith("/dashboard/adjuster"))
-        .forEach((item) => {
-          router.prefetch(item.href);
-        });
-
-      preloadAdjusterClaimsPayload();
-    }
-  }, [isAdjusterPortal, isClaimantPortal, navigationItems, router]);
-
   return (
     <section className="portal-shell">
       <aside className="portal-sidebar">
@@ -116,6 +86,7 @@ export function DashboardShell({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={isActive ? "portal-nav-item active" : "portal-nav-item"}
               >
                 <div className="portal-nav-topline">

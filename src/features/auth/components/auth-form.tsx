@@ -108,7 +108,7 @@ export function AuthForm({
       </form>
 
       <p className="auth-footer">
-        {footerText} <Link href={footerHref}>{footerLabel}</Link>
+        {footerText} <Link href={footerHref} prefetch={false}>{footerLabel}</Link>
       </p>
     </section>
   );

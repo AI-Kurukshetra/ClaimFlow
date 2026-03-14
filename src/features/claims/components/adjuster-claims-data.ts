@@ -61,10 +61,6 @@ async function loadAdjusterClaimsPayload() {
   return pendingPayloadRequest;
 }
 
-export function preloadAdjusterClaimsPayload() {
-  void loadAdjusterClaimsPayload();
-}
-
 export function useAdjusterClaimsPayload(enabled = true) {
   const [payload, setPayload] = useState<AdjusterClaimsPayload | null>(cachedPayload);
   const [error, setError] = useState<string | null>(null);

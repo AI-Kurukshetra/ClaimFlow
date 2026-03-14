@@ -20,10 +20,10 @@ export default function ClaimantDashboardPage() {
         </div>
 
         <div className="dashboard-overview-actions">
-          <Link href="/dashboard/claimant/add-claims" className="primary-button">
+          <Link href="/dashboard/claimant/add-claims" prefetch={false} className="primary-button">
             Add Claim
           </Link>
-          <Link href="/dashboard/claimant/action-required" className="secondary-button dashboard-ghost-button">
+          <Link href="/dashboard/claimant/action-required" prefetch={false} className="secondary-button dashboard-ghost-button">
             Open Action Required
           </Link>
         </div>
@@ -66,7 +66,12 @@ export default function ClaimantDashboardPage() {
         {recentClaims.length ? (
           <div className="claim-queue-grid">
             {recentClaims.map((claim) => (
-              <Link key={claim.id} href={getClaimantClaimDetailHref(claim.id, claim.status)} className="claim-queue-box">
+              <Link
+                key={claim.id}
+                href={getClaimantClaimDetailHref(claim.id, claim.status)}
+                prefetch={false}
+                className="claim-queue-box"
+              >
                 <h5 className="claim-queue-model">{claim.vehicleLabel}</h5>
                 <p className="claim-queue-number">{claim.refNumber ?? "Reference pending"}</p>
                 <div className="claim-queue-foot">

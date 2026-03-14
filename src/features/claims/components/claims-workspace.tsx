@@ -105,7 +105,7 @@ export function ClaimsWorkspace({
               }
 
               return (
-                <Link key={claim.id} href={getClaimHref(claim)} className="claim-queue-box">
+                <Link key={claim.id} href={getClaimHref(claim)} prefetch={false} className="claim-queue-box">
                   {content}
                 </Link>
               );
@@ -121,4 +121,3 @@ export function ClaimsWorkspace({
     </div>
   );
 }
-

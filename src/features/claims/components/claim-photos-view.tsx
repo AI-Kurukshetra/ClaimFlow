@@ -19,7 +19,7 @@ export function ClaimPhotosView({ backHref, claimRef, photos }: ClaimPhotosViewP
         <p className="eyebrow">Claim Photos</p>
         <h3>{claimRef}</h3>
         <p className="workspace-hero-copy">Open any image to view it in a new browser tab.</p>
-        <Link href={backHref} className="claim-detail-back-link">
+        <Link href={backHref} prefetch={false} className="claim-detail-back-link">
           Back to claim
         </Link>
       </section>
